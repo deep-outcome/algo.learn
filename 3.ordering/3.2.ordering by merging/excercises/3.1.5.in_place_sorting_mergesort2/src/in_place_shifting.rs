@@ -23,7 +23,7 @@ where
     //         //         return Result::SwapSorted;
     //     }
 
-    while left < left_ex_end 
+    while left < left_ex_end
     // handles shorter right block
     && right < right_ex_end
     {

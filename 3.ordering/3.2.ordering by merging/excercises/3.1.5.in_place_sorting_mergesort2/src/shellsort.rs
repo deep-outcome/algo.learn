@@ -37,10 +37,44 @@
 // i.e. gap₂=n/4=n/2/2
 // iterations = n*(1-1/2^i)+ … +n*(1-1/2^max)
 
-// - unfortunatelly iterations count producted by insertion sorts is not so easy to exactly
-// settle and it is open math problem
-// see Analysis of Shellsort and Related Algorithms by Robert Sedgewick of Princeton University
-// for details — https://sedgewick.io/wp-content/themes/sedgewick/papers/1996Shellsort.pdf
+// - insertion worst case goes when n=2ⁱ and numbers ale layed out such
+// that odd positions are ocuppied with # 1,2,3,…,n/2 and even positions
+// with # n/2+1,n/2+2,…,n
+// this because gap presorts fail in all iterations
+// e.g. n=16, let observe L₁ situation
+//         1   2   3   4    5   6    7   8    9   10  11   12  13  14   15   16
+//       +---+---+---+----+---+----+---+----+---+----+---+----+---+----+---+----+
+//       | 1 | 9 | 2 | 10 | 3 | 11 | 4 | 12 | 5 | 13 | 6 | 14 | 7 | 15 | 8 | 16 |
+//       +---+---+---+----+---+----+---+----+---+----+---+----+---+----+---+----+
+//         ↓       ↓        ↓        ↓        ↓        ↓        ↓        ↓
+// gap=8  L₁       ↓        ↓        ↓       L₁        ↓        ↓        ↓
+//         ↓       ↓        ↓        ↓        ↓        ↓        ↓        ↓
+// gap=4  L₁       ↓       L₁        ↓       L₁        ↓       L₁        ↓
+//         ↓       ↓        ↓        ↓        ↓        ↓        ↓        ↓
+// gap=2  L₁      L₁       L₁       L₁       L₁       L₁       L₁       L₁
+// gap=1  L₁ = original sequence, since same goes for other lists
+//
+// work left for last and only insertion sort can be then deduced, n=8
+// +-----------+-------+----------------------------+
+// | iteration | swaps |            layout          |
+// +-----------+-------+----------------------------+
+// |         1 |     0 | [1], [5], 2, 6, 3, 7, 4, 8 |
+// |         2 |     1 | 1, [2], [5], 6, 3, 7, 4, 8 |
+// |         3 |     0 | 1, 2, [5], [6], 3, 7, 4, 8 |
+// |         4 |     2 | 1, 2, [3], 5, [6], 7, 4, 8 |
+// |         5 |     0 | 1, 2, 3, 5, [6], [7], 4, 8 |
+// |         6 |     3 | 1, 2, 3, [4], 5, 6, [7], 8 |
+// |         7 |     0 | 1, 2, 3, 4, 5, 6, [7], [8] |
+// +-----------+-------+----------------------------+
+//
+// so using integers sum formula s=n(f+l)/2 = n(n+1)/2 (positive integers)
+// 1+2+ … +(n/2)-1 = (((n/2)-1)*(n/2)) / 2 ≅ n²/4/2 = n²/8 ⇒ Ο(n²)
+// so altogether it is some log₂n + c*n + n² ⇒ Ο(n²)
+
+// - for other gap sequences complexity is different, see for further reference:
+// ❥ https://sedgewick.io/wp-content/themes/sedgewick/papers/1996Shellsort.pdf
+// ❥ https://en.wikipedia.org/wiki/Shellsort#Gap_sequences
+
 
 fn step(val: usize) -> usize {
     if val == 1 {

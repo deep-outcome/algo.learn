@@ -3,9 +3,44 @@
 /// so having: a,b,c where c>b ∧ c>a
 /// then when: c*b+a=x ⇒ x%c=a ∧ ⌊x/c⌋=b
 ///
-/// when a=b then is obvious why c must be greater than both (a,b) and not equal
-/// to max(a,b)
-/// otherwise % operation raises 0 and / operation result is 1 more greater
+///
+/// c must by greater than both (a,b) since:
+/// 1) a=b
+/// example
+/// +---+---+
+/// | 4 | 4 |
+/// +---+---+
+/// after 1ˢᵗ iteration
+/// +----+---+
+/// | 20 | 4 |
+/// +----+---+
+/// after right portion exhaustion
+/// +----+----+
+/// | 20 | 20 |
+/// +----+----+
+/// after current nums computation
+/// +---+---+
+/// | 5 | 5 |
+/// +---+---+
+///
+/// 2) 0 should swap with max
+/// example
+/// +---+---+
+/// | 4 | 0 |
+/// +---+---+
+/// after 1ˢᵗ iteration
+/// +---+---+
+/// | 4 | 0 |
+/// +---+---+
+/// after left portion exhaustion
+/// +---+----+
+/// | 4 | 16 |
+/// +---+----+
+/// after current nums computation
+/// +---+---+
+/// | 1 | 4 |
+/// +---+---+
+///
 ///
 /// Ο(2) space complexity
 /// Ο(2*n) ∊ Ο(n) time complexity, at 1ˢᵗ glanc c (aux operations) is not small

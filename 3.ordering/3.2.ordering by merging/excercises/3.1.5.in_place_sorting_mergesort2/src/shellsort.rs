@@ -75,7 +75,6 @@
 // ❥ https://sedgewick.io/wp-content/themes/sedgewick/papers/1996Shellsort.pdf
 // ❥ https://en.wikipedia.org/wiki/Shellsort#Gap_sequences
 
-
 fn step(val: usize) -> usize {
     if val == 1 {
         0
@@ -93,8 +92,8 @@ pub fn shellsort(slc: &mut [usize]) {
     if len < 2 {
         return;
     }
-    
-    let step_cycles = (len as f64).log2().ceil() as usize;    
+
+    let step_cycles = (len as f64).log2().ceil() as usize;
 
     let mut right_index_increments = HashMap::<usize, usize>::with_capacity(step_cycles);
     let mut inner_cycles = HashMap::<usize, usize>::with_capacity(step_cycles);
@@ -150,7 +149,7 @@ pub fn shellsort(slc: &mut [usize]) {
         current_step_cycle = current_step_cycle + 1;
     }
 
-    println!("len {:?}", len);    
+    println!("len {:?}", len);
     println!("step_cycles {:?}", step_cycles);
     let mut right_index_increments = right_index_increments.iter().collect::<Vec<_>>();
     right_index_increments.sort_by_key(|x| *x.0);

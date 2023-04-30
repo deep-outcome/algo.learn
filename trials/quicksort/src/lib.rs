@@ -1,16 +1,18 @@
 #[allow(dead_code)]
 #[allow(unconditional_recursion)]
 fn sort(slc: &mut [usize]) {
+    // not using slices involves indexes computations
+    // and slight change to part function (writ_ix, read_ix start elsewhere)
     let len = slc.len();
 
     if len == 0 {
         return;
     }
 
-    let part = part(slc, slc.len() - 1);
-    
-    sort(&mut slc[0..part]);
-    sort(&mut slc[part + 1..len]);
+    let piv_ix = part(slc, slc.len() - 1);
+
+    sort(&mut slc[0..piv_ix]);
+    sort(&mut slc[piv_ix + 1..len]);
 }
 
 /// partitions slice

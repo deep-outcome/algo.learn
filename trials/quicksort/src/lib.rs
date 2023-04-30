@@ -8,8 +8,7 @@ fn sort(slc: &mut [usize]) {
     }
 
     let part = part(slc, slc.len() - 1);
-
-    // recursion renders log(n) space complexity
+    
     sort(&mut slc[0..part]);
     sort(&mut slc[part + 1..len]);
 }

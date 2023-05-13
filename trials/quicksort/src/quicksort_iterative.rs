@@ -17,7 +17,7 @@ fn sort(slc: &mut [usize]) {
         // either there can be:
         // 0 — isize cast is needed when piv_ix=0,
         // 1 — then piv_ix==side-index,
-        // or more — execution branch,
+        // or more — execution branch
         // elems at each side of piv_ix
 
         let on_left_ix = piv_ix as isize - 1;

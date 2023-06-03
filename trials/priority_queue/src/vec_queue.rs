@@ -44,7 +44,7 @@ where
             if prio == usize::MAX && high_ix == usize::MAX {
                 // this condition can be satisfied only
                 // when 0-index `it` has `usize::MAX` priority
-                high_ix = 0                 
+                high_ix = 0
             }
             // lower number denotes higher priority
             else if prio < high_prio {
@@ -149,7 +149,7 @@ mod tests_of_units {
         que.enq(9, 1);
 
         assert_eq!(Some(1), que.peek_ix());
-        que.deq();        
+        que.deq();
 
         assert_eq!(Some(2), que.peek_ix());
     }

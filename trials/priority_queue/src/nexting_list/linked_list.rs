@@ -64,6 +64,7 @@ where
                 break;
             }
 
+            // > instead of >= must be used in real time systems
             if next.as_ref().unwrap().prio >= prio {
                 nod.next = next.take();
                 *next = Some(nod);

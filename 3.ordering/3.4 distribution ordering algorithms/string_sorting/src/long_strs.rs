@@ -3,65 +3,71 @@ use std::str;
 
 #[allow(dead_code)]
 pub fn sort(strs: &mut [&str]) {
-    // classic approach is to create array with len = lenₘₐₓ(strs)`
+    // classic approach is to create array with len = lenₘₐₓ(strs)
     // let assume using HashMap is more economic since for big lenₘₐₓ
     // many lens will not be present among `strs`
     let mut len_bucs = HashMap::<usize, Vec<&[u8]>>::new();
 
-    // time complexity classicaly:
-    // ϴ(lenₘₐₓ) for array initialization
+    // TC classicaly:
+    // ϴ(lenₘₐₓ) for len-arrays initialization
     // ϴ(n) for putting each into respective
     //
-    // space complexity classicaly:
-    // ϴ(lenₘₐₓ) for len-arrays (assuming initial len=0)
-    // ϴ(n) for each &str copy (assuming expansion by 1 [not typical])
+    // SC classicaly:
+    // ϴ(lenₘₐₓ) for len-arrays assuming initial 0 capacity
+    // ϴ(n) for each &str copy assuming capacity grow by one at time
     //
-    // let accept HashMap time complexity opaque but space complexity obviously downgrades to
-    // ϴ(nₗₑₙₛ) + ϴ(n)
+    // HashMap time complexity is opaque but space complexity obviously downgrades to
+    // ϴ(nₗₑₙₛ + n) holding same assumptions
+    //
+    // let assume TC ϴ(n)
     for byts in strs.iter().map(|x| x.as_bytes()) {
-        let key = byts.len() - 1;
+        let ix = byts.len() - 1;
 
-        if let Some(buc) = len_bucs.get_mut(&key) {
+        if let Some(buc) = len_bucs.get_mut(&ix) {
             buc.push(byts);
         } else {
             let mut buc = Vec::<&[u8]>::new();
             buc.push(byts);
-            len_bucs.insert(key, buc);
+            len_bucs.insert(ix, buc);
         }
     }
 
     // only basic ASCII alphabet + some other chars support
-    // let reuse `len_bucs` approach
-    // spare 1ˢᵗ 32 position in exchange for opaque time complexity
-    let mut alpha_bucs = HashMap::<u8, Vec<&[u8]>>::new(); // UTF-8 is 1–4 bytes, but ASCII fits 1
-    let alpha_bucs_keys = (32u8..=126).collect::<Vec<u8>>();
+    // so any goes into 1 byte
+    // SC: ϴ(lenₐₗₚₕₐ)
+    let mut alpha_bucs = Vec::<Vec<&[u8]>>::with_capacity(95);
 
-    for key in alpha_bucs_keys.iter() {
-        alpha_bucs.insert(*key, Vec::new());
+    // TC: ϴ(lenₐₗₚₕₐ)
+    for _ in 0..95 {
+        alpha_bucs.push(Vec::new());
     }
 
     let strs_len = strs.len();
+
+    // SC: ϴ(n)
     let mut output = Vec::<&[u8]>::with_capacity(strs_len);
 
     // another opaque trade-off
-    // what complexity is to sort `len_bucs_keys`?, of which len?
+    // what complexity is to sort-reverse`len_bucs_keys`?
     let mut len_bucs_keys = len_bucs.keys().collect::<Vec<&usize>>();
     len_bucs_keys.sort();
     len_bucs_keys.reverse();
 
-    for len_k in len_bucs_keys {
-        for s in len_bucs.get(len_k).unwrap() {
-            to_alpha_bucs(&mut alpha_bucs, s, *len_k);
+    // TC: ϴ(nₗₑₙₛ * lenₐₗₚₕₐ) + ϴ(Σᵢlenᵢ)
+    for len_ix in len_bucs_keys {
+        for s in len_bucs.get(len_ix).unwrap() {
+            to_alpha_bucs(&mut alpha_bucs, s, *len_ix);
         }
 
         for o in output.iter() {
-            to_alpha_bucs(&mut alpha_bucs, o, *len_k);
+            to_alpha_bucs(&mut alpha_bucs, o, *len_ix);
         }
 
         output.clear();
 
-        for alpha_k in alpha_bucs_keys.iter() {
-            let buc = alpha_bucs.get_mut(alpha_k).unwrap();
+        // TC: ϴ(lenₐₗₚₕₐ)
+        for alpha_ix in 0..95 {
+            let buc = &mut alpha_bucs[alpha_ix];
 
             if buc.len() == 0 {
                 continue;
@@ -71,20 +77,23 @@ pub fn sort(strs: &mut [&str]) {
                 output.push(s);
             }
 
+            // it does not make much sense to re-allocate `alpha_bucs` each iteration
+            // but `clear` does not truncate capacity so
+            // so Ο(n) expectation on memory consumed by `alpha_bucs` is slightly
+            // odd
             buc.clear();
         }
     }
 
+    // TC: ϴ(n)
     for i in 0..strs_len {
         strs[i] = str::from_utf8(output[i]).unwrap();
     }
 }
 
-fn to_alpha_bucs<'a>(alpha_bucs: &mut HashMap<u8, Vec<&'a [u8]>>, s: &'a [u8], offset: usize) {
-    use std::ops::Index;
-
-    // can panic at `alpha_bucs.get_mut` when using `String` composed of out of support elements
-    alpha_bucs.get_mut(s.index(offset)).unwrap().push(s);
+fn to_alpha_bucs<'a>(alpha_bucs: &mut Vec<Vec<&'a [u8]>>, s: &'a [u8], len_ix: usize) {
+    // can panic at `alpha_bucs[…]` when using `String` composed of out of support elements
+    alpha_bucs[s[len_ix] as usize - 32].push(s);
 }
 
 #[cfg(test)]
@@ -105,22 +114,22 @@ mod tests_of_units {
     #[test]
     #[should_panic(expected = "attempt to subtract with overflow")]
     fn no_supp_for_empty_str() {
-        // support for empty strings is trivial so keep it omitted
+        // support for empty strings is trivial, so keep it omitted
         let mut test = [""];
         sort(&mut test);
     }
 
     #[test]
-    #[should_panic(expected = "called `Option::unwrap()` on a `None` value")]
+    #[should_panic(expected = "attempt to subtract with overflow")]
     fn unsupp_elems_test1() {
-        let mut data = [str::from_utf8(&[31]).unwrap()];
-        sort(&mut data);
+        let mut test = [str::from_utf8(&[31]).unwrap(), "aaa"];
+        sort(&mut test);
     }
 
     #[test]
-    #[should_panic(expected = "called `Option::unwrap()` on a `None` value")]
+    #[should_panic(expected = "index out of bounds: the len is 95 but the index is 95")]
     fn unsupp_elems_test2() {
-        let mut data = [str::from_utf8(&[127]).unwrap()];
-        sort(&mut data);
+        let mut test = [str::from_utf8(&[127]).unwrap(), "aaa"];
+        sort(&mut test);
     }
 }

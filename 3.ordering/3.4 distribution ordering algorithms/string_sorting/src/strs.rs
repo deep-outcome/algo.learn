@@ -13,7 +13,7 @@ fn sort(strs: &mut [&str]) {
 fn sort_focus(strs: &mut [&str]) {
     // TC: ϴ(n) (imagine flat for loop)
     let len_bucs_len = strs.iter().map(|x| x.len()).max().unwrap();
-    
+
     // SC: ϴ(lenₘₐₓ)
     let mut len_bucs = Vec::<Vec<&[u8]>>::with_capacity(len_bucs_len);
 
@@ -50,7 +50,7 @@ fn sort_focus(strs: &mut [&str]) {
         for _ in 0..=94 {
             // allocation in each iteration is suboptimal
             // preallocation and `clear` on other hand
-            // can break ϴ(n) space complexity (capacity is not "cleared")
+            // can break Ο(n) space complexity (capacity is not "cleared")
             alpha_bucs.push(Vec::new());
         }
 
@@ -80,6 +80,7 @@ fn sort_focus(strs: &mut [&str]) {
         alpha_bucs.clear();
     }
 
+    // TC: ϴ(n)
     for i in 0..strs_len {
         strs[i] = str::from_utf8(output[i]).unwrap();
     }

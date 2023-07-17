@@ -11,7 +11,7 @@ impl KeyProvider for u32 {
 }
 
 #[allow(dead_code)]
-fn sort<T>(slc: &mut [T])
+fn sort<T>(slc: &mut [T], max_key: u32, max_repetition: usize)
 where
     T: KeyProvider + Display + Clone,
 {
@@ -19,27 +19,27 @@ where
         return;
     }
 
-    sort_unccked(slc)
+    sort_unccked(slc, max_key, max_repetition)
 }
 
-fn sort_unccked<T>(slc: &mut [T])
+fn sort_unccked<T>(slc: &mut [T], max_key: u32, max_repetition: usize)
 where
     T: KeyProvider + Display + Clone,
 {
     // support for up to 5 same keys
-    const KEYS_LEN: usize = 1_000_001 * 5;
-    let mut cask = Vec::<Option<T>>::with_capacity(KEYS_LEN);
+    let keys_len: usize = (max_key as usize + 1) * max_repetition;
+    let mut cask = Vec::<Option<T>>::with_capacity(keys_len);
 
-    unsafe { cask.set_len(KEYS_LEN) };
+    unsafe { cask.set_len(keys_len) };
 
-    for i in 0..KEYS_LEN {
+    for i in 0..keys_len {
         cask[i] = None;
     }
 
     'a: for t in slc.iter() {
         let mut key = t.key();
 
-        key += key * 4;
+        key = key * max_repetition;
 
         for _ in 1..=5 {
             let val = &cask[key];
@@ -80,7 +80,7 @@ mod tests_of_units {
         let mut criterion = vals.clone();
         criterion.sort();
 
-        sort_unccked(&mut vals);
+        sort_unccked(&mut vals, 9, 1);
         assert_eq!(criterion, vals);
     }
 
@@ -91,7 +91,7 @@ mod tests_of_units {
         let mut criterion = vals.clone();
         criterion.sort();
 
-        sort_unccked(&mut vals);
+        sort_unccked(&mut vals, 9, 5);
         assert_eq!(criterion, vals);
     }
 
@@ -103,7 +103,7 @@ mod tests_of_units {
         let mut criterion = vals.clone();
         criterion.sort();
 
-        sort_unccked(&mut vals);
+        sort_unccked(&mut vals, 9, 5);
         assert_eq!(criterion, vals);
     }
 
@@ -117,7 +117,41 @@ mod tests_of_units {
         let mut criterion = vals.clone();
         criterion.sort();
 
-        sort_unccked(&mut vals);
+        sort_unccked(&mut vals, 1_000_000, 5);
+        assert_eq!(criterion, vals);
+    }
+
+    #[test]
+    fn offsetting_test() {
+        let mut vals = [1_000_000, 1_000_000, 1_000_000, 1_000_000, 1_000_000, 0];
+
+        let mut criterion = vals.clone();
+        criterion.sort();
+
+        sort_unccked(&mut vals, 1_000_000, 5);
+        assert_eq!(criterion, vals);
+    }
+
+    #[test]
+    fn max_key_test1() {
+        let mut vals = [1, 0];
+
+        let mut criterion = vals.clone();
+        criterion.sort();
+
+        sort_unccked(&mut vals, 1, 1);
+        assert_eq!(criterion, vals);
+    }
+
+    #[test]
+    #[should_panic(expected = "index out of bounds: the len is 2 but the index is 2")]
+    fn max_key_test2() {
+        let mut vals = [2, 1];
+
+        let mut criterion = vals.clone();
+        criterion.sort();
+
+        sort_unccked(&mut vals, 1, 1);
         assert_eq!(criterion, vals);
     }
 }

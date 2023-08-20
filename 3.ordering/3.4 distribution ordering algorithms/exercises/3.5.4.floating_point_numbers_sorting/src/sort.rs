@@ -20,9 +20,9 @@ use std::rc::Rc;
 pub type FPoint = u32;
 
 #[derive(Clone)]
-// S: Ο(usize+usize+24*u16+u32) => Ο(68 bytes)
+// S: Ο(usize+usize+24*u8+u32) => Ο(44 bytes)
 struct FPointKey {
-    polynom: Rc<Box<[u16; 24]>>,
+    polynom: Rc<Box<[u8; 24]>>,
     val: FPoint,
 }
 
@@ -135,8 +135,8 @@ fn sort(fpoints: &mut [FPoint]) {
 }
 
 use super::consts::*;
-fn gen_poly(f: FPoint) -> Rc<Box<[u16; 24]>> {
-    let mut exp = (f & EXP_MASK) as u16;
+fn gen_poly(f: FPoint) -> Rc<Box<[u8; 24]>> {
+    let mut exp = (f & EXP_MASK) as u8;
 
     if SIG_BIT_MASK & f != SIG_BIT_MASK {
         // exponent is defined using 2's complement
@@ -153,8 +153,12 @@ fn gen_poly(f: FPoint) -> Rc<Box<[u16; 24]>> {
         let mant_mask = 1 << bit_ix;
 
         if mant_mask & mant == mant_mask {
-            let pow = bit_ix + 1 + exp; // +1 can be ommited but let have exact nums
-            polynom[bit_ix as usize] = pow;
+            // there is possible to go with:
+            // • exact polynom member value, i.e `pow = bit_ix + 1 + exp` ⇒ (u16)
+            // • to ommit correction of actual mantissa power, i.e `pow = bit_ix + exp` ⇒ (u16)
+            // • ommit mantissa power completely since relation is provided by order, i.e. `pow = exp` ⇒ (u8)
+            
+            polynom[bit_ix as usize] = exp;
         }
     }
 
@@ -175,7 +179,7 @@ mod get_poly_tests {
 
         let poly = gen_poly(f);
 
-        let criterion = (1..=24).map(|x| x + 127 + 128).collect::<Vec<u16>>();
+        let criterion = (0..24).map(|_| 127 + 128).collect::<Vec<u8>>();
         assert_eq!(criterion.leak(), &**poly);
     }
 
@@ -185,7 +189,7 @@ mod get_poly_tests {
 
         let poly = gen_poly(f);
 
-        let criterion = (1..=24).map(|x| x - 1 + 128).collect::<Vec<u16>>();
+        let criterion = (0..24).map(|_| 127).collect::<Vec<u8>>();
         assert_eq!(criterion.leak(), &**poly);
     }
 
@@ -200,9 +204,9 @@ mod get_poly_tests {
                 if x != 1 && x != 24 {
                     return 0;
                 }
-                return x + 127 + 128;
+                return 127 + 128;
             })
-            .collect::<Vec<u16>>();
+            .collect::<Vec<u8>>();
         assert_eq!(criterion.leak(), &**poly);
     }
 
@@ -217,9 +221,9 @@ mod get_poly_tests {
                 if x != 1 && x != 24 {
                     return 0;
                 }
-                return x - 1 + 128;
+                return 127;
             })
-            .collect::<Vec<u16>>();
+            .collect::<Vec<u8>>();
         assert_eq!(criterion.leak(), &**poly);
     }
 
@@ -232,11 +236,11 @@ mod get_poly_tests {
         let criterion = (1..=24)
             .map(|x| {
                 if x % 2 == 0 {
-                    return x + 42;
+                    return 42;
                 }
                 return 0;
             })
-            .collect::<Vec<u16>>();
+            .collect::<Vec<u8>>();
         assert_eq!(criterion.leak(), &**poly);
     }
 
@@ -251,9 +255,9 @@ mod get_poly_tests {
                 if x % 2 == 0 {
                     return 0;
                 }
-                return x + 85 + 128;
+                return 85 + 128;
             })
-            .collect::<Vec<u16>>();
+            .collect::<Vec<u8>>();
         assert_eq!(criterion.leak(), &**poly);
     }
 }

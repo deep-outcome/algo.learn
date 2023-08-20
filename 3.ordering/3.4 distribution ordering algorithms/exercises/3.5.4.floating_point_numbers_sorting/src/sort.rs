@@ -20,7 +20,7 @@ use std::rc::Rc;
 pub type FPoint = u32;
 
 #[derive(Clone)]
-// S: Ο(usize+usize+24*u8+u32) => Ο(44 bytes)
+// S: Θ(usize+usize+24*u8+u32) => Ο(44 bytes)
 struct FPointKey {
     polynom: Rc<Box<[u8; 24]>>,
     val: FPoint,
@@ -57,7 +57,7 @@ impl PartialOrd for FPointKey {
         let l_p = &self.polynom;
         let r_p = &other.polynom;
 
-        // T: Ο(24)
+        // T: Θ(24)
         for i in (0..24).rev() {
             if l_p[i] < r_p[i] {
                 return true;
@@ -88,12 +88,12 @@ impl PartialOrd for FPointKey {
 fn sort(fpoints: &mut [FPoint]) {
     let fpoints_len = fpoints.len();
 
-    // S: Ο(n)
+    // S: Θ(n)
     let mut keys = Vec::<FPointKey>::with_capacity(fpoints_len);
     let k_spa_cap = keys.spare_capacity_mut();
 
     let mut wr_ix = 0;
-    // T: Ο(n)
+    // T: Θ(n)
     for &f in fpoints.iter() {
         k_spa_cap[wr_ix].write(FPointKey::new(f));
         wr_ix += 1;
@@ -105,7 +105,7 @@ fn sort(fpoints: &mut [FPoint]) {
     // println!("{:?}", fpoints);
 
     // insertion sort
-    // T: n*log n
+    // T: Ο(n*log n)
     for r_ix in 1..fpoints_len {
         let r = &keys[r_ix].clone();
 
@@ -148,7 +148,7 @@ fn gen_poly(f: FPoint) -> Rc<Box<[u8; 24]>> {
 
     let mant = f >> 8;
 
-    // T: Ο(24)
+    // T: Θ(24)
     for bit_ix in 0..24 {
         let mant_mask = 1 << bit_ix;
 
@@ -163,7 +163,7 @@ fn gen_poly(f: FPoint) -> Rc<Box<[u8; 24]>> {
     }
 
     // having input of n 100_000 magnitude
-    // keys would consume at least ≈ 6.49 MB
+    // keys would consume at least ≈ 4.2 MB
     // let avoid stack overflow by default by
     // heap allocation
     Rc::new(Box::new(polynom))

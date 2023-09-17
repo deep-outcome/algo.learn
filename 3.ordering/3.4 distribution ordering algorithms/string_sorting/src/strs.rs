@@ -39,10 +39,10 @@ fn sort_focus(strs: &mut [&str]) {
     // SC: ϴ(n)
     let mut output = Vec::<&[u8]>::with_capacity(strs_len);
 
-    // TC: Ο(lenₘₐₓ² * lenₐₗₚₕₐ)
-    // TC: Ω(lenₘₐₓ * lenₐₗₚₕₐ)
-    // TC: Ο ∩ Ω = (lenₘₐₓ * lenₐₗₚₕₐ)
-    // TC: ϴ(lenₘₐₓ * lenₐₗₚₕₐ) + ϴ(Σᵢlenᵢ)
+    // TC: Ο(lenₘₐₓ² + n)
+    // TC: Ω(lenₘₐₓ + n)
+    // TC: Ο ∩ Ω = (lenₘₐₓ + n)
+    // TC: ϴ(lenₘₐₓ + n) + ϴ(Σᵢlenᵢ)
     // TC: ϴ(Σᵢlenᵢ) = ϴ(s)
     // TC: s = sum of all lengths
     for len_ix in (0..len_bucs_len).rev() {
@@ -64,7 +64,7 @@ fn sort_focus(strs: &mut [&str]) {
 
         output.clear();
 
-        // TC: ϴ(lenₐₗₚₕₐ)
+        // TC: ϴ(lenₐₗₚₕₐ) (not whole cyclus)
         for alpha_ix in 0..=94 {
             let buc = &alpha_bucs[alpha_ix];
 

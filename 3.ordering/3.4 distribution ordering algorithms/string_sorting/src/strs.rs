@@ -46,6 +46,10 @@ fn sort_focus(strs: &mut [&str]) {
     // TC: ϴ(Σᵢlenᵢ) = ϴ(s)
     // TC: s = sum of all lengths
     for len_ix in (0..len_bucs_len).rev() {
+        if len_bucs[len_ix].len() == 0 {
+            continue;
+        }
+
         // TC: ϴ(lenₐₗₚₕₐ)
         for _ in 0..=94 {
             // allocation in each iteration is suboptimal
@@ -97,7 +101,7 @@ mod tests_of_units {
 
     #[test]
     fn basic_test() {
-        let mut strs = ["bb", "aa", "a", "b"];
+        let mut strs = ["accc", "cccc", "bb", "aa", "a", "b"];
 
         let mut criterion = strs.clone();
         criterion.sort();

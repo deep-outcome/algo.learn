@@ -168,6 +168,17 @@ mod tests_of_units {
   }
   
   #[test]
+  fn load_test2() {
+    let mut strs = ["zfeau", "aqab", "aaca", "aqxa", "bbbz", "box", "y", "x"];
+    
+    let mut criterion = strs.clone();
+    criterion.sort();
+    
+    sort(&mut strs);
+    assert_eq!(criterion, strs);
+  }
+  
+  #[test]
   #[should_panic(expected = "attempt to subtract with overflow")]
   fn no_supp_for_empty_str() {
     // to add support for empty strings is trivial, so keep it omitted

@@ -105,7 +105,7 @@ fn sort(fpoints: &mut [FPoint]) {
     // println!("{:?}", fpoints);
 
     // insertion sort
-    // T: Ο(n*log n)
+    // T: Ο(n²)
     for r_ix in 1..fpoints_len {
         let r = &keys[r_ix].clone();
 

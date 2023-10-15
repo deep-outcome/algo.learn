@@ -1,11 +1,11 @@
 #![allow(dead_code)]
 
 use super::consts::*;
-use super::sort::FPoint;
+use super::FPoint;
 
 pub fn get_mant(f: FPoint) -> u32 {
-    let mant = (f >> 8) << 1;
-    mant
+    let mant = f >> 8;
+    mant + 2u32.pow(24)
 }
 
 pub fn get_exp(f: FPoint) -> i32 {
@@ -36,7 +36,7 @@ mod tests_of_units {
         let max_fraction = u32::MAX ^ 0b0111_1111;
 
         let get = get(max_fraction);
-        let criterion = (2f64.powi(25) - 2f64) * 2f64.powi(-128);
+        let criterion = (2f64.powi(24) - 1f64 + 2f64.powi(24)) * 2f64.powi(-128);
 
         assert_eq!(criterion, get);
     }
@@ -46,7 +46,7 @@ mod tests_of_units {
         let max: u32 = u32::MAX ^ 0b1000_0000;
 
         let get = get(max);
-        let criterion = (2f64.powi(25) - 2f64) * 2f64.powi(127);
+        let criterion = (2f64.powi(24) - 1f64 + 2f64.powi(24)) * 2f64.powi(127);
 
         assert_eq!(criterion, get);
     }
@@ -56,7 +56,7 @@ mod tests_of_units {
         let test: u32 = u32::MAX;
 
         let test = get_mant(test);
-        assert_eq!(2u32.pow(25) - 2, test);
+        assert_eq!(2u32.pow(24) - 1 + 2u32.pow(24), test);
     }
 
     #[test]

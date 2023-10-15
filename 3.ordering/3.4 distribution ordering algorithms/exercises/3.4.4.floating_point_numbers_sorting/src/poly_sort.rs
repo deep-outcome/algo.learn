@@ -1,3 +1,8 @@
+use super::FPoint;
+/// THIS SORT TREATS WHOLE FLOATING POINT NUMBER AS POLYNOMIAL
+/// SORTING IS BASED ON COMPARISON OF MONOMIALS
+/// DOWNSIDE IS COMPLEXITY AND USE OF INSERTION SORT
+
 /// let assume floating point number of form bellow
 /// n = m*2ᵉ
 /// mantisa  = m      |     2²⁴ ≤ m ≤ 2²⁵-1
@@ -14,15 +19,12 @@
 /// | exponent | 23| 22| 21| 20| 19| 18| 17| 16| 15| 14| 13| 12| 11| 10| 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |    | 7 |      | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 /// +----------------------------------------------------------------------------------------------------------+---------------+---------------------------+
 ///
-// use super::auxies::*;
 use std::rc::Rc;
-
-pub type FPoint = u32;
 
 #[derive(Clone)]
 // S: Θ(usize+usize+24*u8+u32) => Ο(44 bytes)
 struct FPointKey {
-    polynom: Rc<Box<[u8; 24]>>,
+    polynom: Rc<Box<[u8; 25]>>,
     val: FPoint,
 }
 
@@ -57,8 +59,8 @@ impl PartialOrd for FPointKey {
         let l_p = &self.polynom;
         let r_p = &other.polynom;
 
-        // T: Θ(24)
-        for i in (0..24).rev() {
+        // T: Θ(25)
+        for i in (0..25).rev() {
             if l_p[i] < r_p[i] {
                 return true;
             }
@@ -134,30 +136,34 @@ fn sort(fpoints: &mut [FPoint]) {
     }
 }
 
+// use super::auxies::*;
 use super::consts::*;
-fn gen_poly(f: FPoint) -> Rc<Box<[u8; 24]>> {
+fn gen_poly(f: FPoint) -> Rc<Box<[u8; 25]>> {
     let mut exp = (f & EXP_MASK) as u8;
 
     if SIG_BIT_MASK & f != SIG_BIT_MASK {
         // exponent is defined using 2's complement
         exp += 128;
     }
-
-    let mut polynom = [0; 24];
+    
+    let mut polynom = [0; 25];
+    polynom[24] = exp;
     // print!("{}, {}, {}, ", get(f), get_exp(f), get_mant(f));
 
+
     let mant = f >> 8;
+    if mant > 0 {
+        // T: Θ(24)
+        for bit_ix in 0..24 {
+            let mant_mask = 1 << bit_ix;
 
-    // T: Θ(24)
-    for bit_ix in 0..24 {
-        let mant_mask = 1 << bit_ix;
+            if mant_mask & mant == mant_mask {
+                // there is possible to go with:
+                // • exact polynom member value, i.e `pow = bit_ix + exp` ⇒ (u16)
+                // • ommit mantissa power completely since relation is provided by order, i.e. `pow = exp` ⇒ (u8)
 
-        if mant_mask & mant == mant_mask {
-            // there is possible to go with:
-            // • exact polynom member value, i.e `pow = bit_ix + exp` ⇒ (u16)            
-            // • ommit mantissa power completely since relation is provided by order, i.e. `pow = exp` ⇒ (u8)
-            
-            polynom[bit_ix as usize] = exp;
+                polynom[bit_ix as usize] = exp;
+            }
         }
     }
 
@@ -178,7 +184,7 @@ mod get_poly_tests {
 
         let poly = gen_poly(f);
 
-        let criterion = (0..24).map(|_| 127 + 128).collect::<Vec<u8>>();
+        let criterion = (0..25).map(|_| 127 + 128).collect::<Vec<u8>>();
         assert_eq!(criterion.leak(), &**poly);
     }
 
@@ -188,7 +194,7 @@ mod get_poly_tests {
 
         let poly = gen_poly(f);
 
-        let criterion = (0..24).map(|_| 127).collect::<Vec<u8>>();
+        let criterion = (0..25).map(|_| 127).collect::<Vec<u8>>();
         assert_eq!(criterion.leak(), &**poly);
     }
 
@@ -198,9 +204,9 @@ mod get_poly_tests {
 
         let poly = gen_poly(f);
 
-        let criterion = (1..=24)
+        let criterion = (1..=25)
             .map(|x| {
-                if x != 1 && x != 24 {
+                if x != 1 && x < 24 {
                     return 0;
                 }
                 return 127 + 128;
@@ -215,9 +221,9 @@ mod get_poly_tests {
 
         let poly = gen_poly(f);
 
-        let criterion = (1..=24)
+        let criterion = (1..=25)
             .map(|x| {
-                if x != 1 && x != 24 {
+                if x != 1 && x < 24 {
                     return 0;
                 }
                 return 127;
@@ -232,7 +238,7 @@ mod get_poly_tests {
 
         let poly = gen_poly(f);
 
-        let criterion = (1..=24)
+        let mut criterion = (1..=24)
             .map(|x| {
                 if x % 2 == 0 {
                     return 42;
@@ -240,6 +246,9 @@ mod get_poly_tests {
                 return 0;
             })
             .collect::<Vec<u8>>();
+
+        criterion.push(42);
+
         assert_eq!(criterion.leak(), &**poly);
     }
 
@@ -249,7 +258,7 @@ mod get_poly_tests {
 
         let poly = gen_poly(f);
 
-        let criterion = (1..=24)
+        let criterion = (1..=25)
             .map(|x| {
                 if x % 2 == 0 {
                     return 0;
@@ -310,14 +319,46 @@ mod sort_tests {
 
     #[test]
     fn load_test() {
+        let min_mant_min_exp = 0 | 0b_1000_0000;
+        let one_half = 0 | 0b_1110_0111;
+        let one = 0 | 0b_1110_1000;
+        let two = 0 | 0b_1110_1001;
+        let min_mant_zer_exp = 0;
+        let max_mant_zer_exp = 0;
+        let min_mant_max_exp = 0 | 0b_0111_1111;
+
         let a: u32 = 0b_0101_0101_0101_0101_0101_0101___1010_1010;
         let b: u32 = 0b_1010_1010_1010_1010_1010_1010___1010_1010;
 
         let c: u32 = 0b_0101_0101_0101_0101_0101_0101___0101_0101;
         let d: u32 = 0b_1010_1010_1010_1010_1010_1010___0101_0101;
 
-        let mut arr = [d, c, b, a];
-        let criterion = [a, b, c, d];
+        let mut arr = [
+            d,
+            c,
+            b,
+            a,
+            min_mant_max_exp,
+            min_mant_zer_exp,
+            max_mant_zer_exp,
+            two,
+            one,
+            one_half,
+            min_mant_min_exp,
+        ];
+        let criterion = [
+            min_mant_min_exp,
+            one_half,
+            one,
+            two,
+            min_mant_zer_exp,
+            max_mant_zer_exp,
+            min_mant_max_exp,
+            a,
+            b,
+            c,
+            d,
+        ];
 
         sort(&mut arr);
         assert_eq!(criterion, arr);

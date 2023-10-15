@@ -20,7 +20,7 @@ use super::FPoint;
 use std::rc::Rc;
 
 #[derive(Clone)]
-// S: Θ(usize+usize+24*u8+u32) => Ο(44 bytes)
+// S: Θ(usize+usize+25*u8+u32) => Ο(45 bytes)
 struct FPointKey {
     polynom: Rc<Box<[u8; 25]>>,
     val: FPoint,
@@ -165,7 +165,7 @@ fn gen_poly(f: FPoint) -> Rc<Box<[u8; 25]>> {
     }
 
     // having input of n 100_000 magnitude
-    // keys would consume at least ≈ 4.2 MB
+    // keys would consume at least ≈ 4.3 MB
     // let avoid stack overflow by default by
     // heap allocation
     Rc::new(Box::new(polynom))

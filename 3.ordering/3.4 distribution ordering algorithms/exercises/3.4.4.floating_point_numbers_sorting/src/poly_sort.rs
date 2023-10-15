@@ -7,8 +7,6 @@ use super::FPoint;
 /// n = m*2ᵉ
 /// mantisa  = m      |     2²⁴ ≤ m ≤ 2²⁵-1
 /// exponent = e      |  -128 ≤ e ≤ 127     , -(2⁷) ≤ e ≤ 2⁷-1
-/// this sort will work for any similar f-point num assuming: bit power ascending from right, exponent being defined using 2's complement,
-/// i.e. magnitude of particular bit pow is not decisive, only relation to other bit pows
 /// +----------------------------------------------------------------------------------------------------------+---------------+---------------------------+
 /// |                                             mantissa                                                     | exponent-sign |          exponent         |
 /// +----------------------------------------------------------------------------------------------------------+---------------+---------------------------+
@@ -145,11 +143,10 @@ fn gen_poly(f: FPoint) -> Rc<Box<[u8; 25]>> {
         // exponent is defined using 2's complement
         exp += 128;
     }
-    
+
     let mut polynom = [0; 25];
     polynom[24] = exp;
     // print!("{}, {}, {}, ", get(f), get_exp(f), get_mant(f));
-
 
     let mant = f >> 8;
     if mant > 0 {

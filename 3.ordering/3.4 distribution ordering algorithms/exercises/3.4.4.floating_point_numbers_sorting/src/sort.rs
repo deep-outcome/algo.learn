@@ -1,6 +1,6 @@
 /// let assume floating point number of form bellow
 /// n = m*2ᵉ
-/// mantisa  = m      |     2²⁴ ≤ m < 2²⁵-1 ,   2²⁴ ≤ m ≤ 2²⁴ + 2²⁴-2
+/// mantisa  = m      |     2²⁴ ≤ m ≤ 2²⁵-1
 /// exponent = e      |  -128 ≤ e ≤ 127     , -(2⁷) ≤ e ≤ 2⁷-1
 /// this sort will work for any similar f-point num assuming: bit power ascending from right, exponent being defined using 2's complement,
 /// i.e. magnitude of particular bit pow is not decisive, only relation to other bit pows
@@ -11,7 +11,7 @@
 /// +----------------------------------------------------------------------------------------------------------+---------------+---------------------------+
 /// | layout   | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |    | 0 |      | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
 /// +----------------------------------------------------------------------------------------------------------+---------------+---------------------------+
-/// | exponent | 24| 23| 22| 21| 20| 19| 18| 17| 16| 15| 14| 13| 12| 11| 10| 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 |    | 7 |      | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
+/// | exponent | 23| 22| 21| 20| 19| 18| 17| 16| 15| 14| 13| 12| 11| 10| 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |    | 7 |      | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 /// +----------------------------------------------------------------------------------------------------------+---------------+---------------------------+
 ///
 // use super::auxies::*;
@@ -154,8 +154,7 @@ fn gen_poly(f: FPoint) -> Rc<Box<[u8; 24]>> {
 
         if mant_mask & mant == mant_mask {
             // there is possible to go with:
-            // • exact polynom member value, i.e `pow = bit_ix + 1 + exp` ⇒ (u16)
-            // • to ommit correction of actual mantissa power, i.e `pow = bit_ix + exp` ⇒ (u16)
+            // • exact polynom member value, i.e `pow = bit_ix + exp` ⇒ (u16)            
             // • ommit mantissa power completely since relation is provided by order, i.e. `pow = exp` ⇒ (u8)
             
             polynom[bit_ix as usize] = exp;

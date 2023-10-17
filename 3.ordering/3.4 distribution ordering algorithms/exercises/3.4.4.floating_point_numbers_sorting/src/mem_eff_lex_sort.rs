@@ -1,5 +1,4 @@
-/// THIS SORT GOES WITH LEXICOGRAPHICAL SORTING
-/// LARGE BUCKETS ARE DOWNSIDE OF THIS SORT
+/// THIS SORT USES MEMORY EFFICIENT LEXICOGRAPHICAL SORTING
 
 /// let assume floating point number of form bellow
 /// n = m*2ᵉ
@@ -20,35 +19,16 @@ use super::FPoint;
 
 #[allow(dead_code)]
 fn sort(fpoints: &mut [FPoint]) {
-    let perms = 2usize.pow(24);
-    let mut bucs = Vec::with_capacity(perms);
+    let mut exp_bucs = Vec::with_capacity(256);
 
-    let sp_cp_mut = bucs.spare_capacity_mut();
-
-    // T: Θ(2²⁴)
-    // S: Θ(2²⁴)
-    for cp in sp_cp_mut {
+    for cp in exp_bucs.spare_capacity_mut() {
         cp.write(Vec::<FPoint>::with_capacity(0));
     }
 
     unsafe {
-        bucs.set_len(perms);
+        exp_bucs.set_len(256);
     }
 
-    // T: Θ(n)
-    // S: Θ(n)
-    for &f in fpoints.iter() {
-        let mant = f >> 8;
-
-        // println!("mant {mant}, f {f}");
-
-        bucs[mant as usize].push(f);
-    }
-
-    wr_output(&mut bucs, fpoints);
-
-    // T: Θ(n)
-    // S: Θ(n)
     for &f in fpoints.iter() {
         let mut exp = (f & EXP_MASK) as usize;
         if SIG_BIT_MASK & f != SIG_BIT_MASK {
@@ -56,33 +36,57 @@ fn sort(fpoints: &mut [FPoint]) {
             exp += 128;
         }
 
-        // println!("exp {exp}, f {f}");
-        bucs[exp].push(f);
+        exp_bucs[exp].push(f);
     }
 
-    wr_output(&mut bucs, fpoints);
-}
-
-fn wr_output(bucs: &mut Vec<Vec<FPoint>>, fpoints: &mut [FPoint]) {
-    let fpoints_len = fpoints.len();
+    let mut man_bucs = Vec::with_capacity(2);
+    man_bucs.push(Vec::<FPoint>::with_capacity(0));
+    man_bucs.push(Vec::<FPoint>::with_capacity(0));
 
     let mut wr_ix = 0;
+    for e_b in exp_bucs.iter_mut() {
+        let e_b_len = e_b.len();
 
-    // T: Ο(2²⁴)
-    for b in bucs {
-        if b.len() == 0 {
+        if e_b_len == 0 {
             continue;
         }
-        for &f in b.iter() {
-            fpoints[wr_ix] = f;
-            wr_ix += 1;
 
-            if fpoints_len == wr_ix {
-                break;
-            }
+        if e_b_len == 1 {
+            fpoints[wr_ix] = e_b[0];
+            wr_ix += 1;
+            continue;
         }
 
-        b.clear();
+        for i in 0..24 {
+            for &f in e_b.iter() {
+                let bitmask = 1 << i;
+
+                let mant = f >> 8;
+
+                let bit = if mant & bitmask == bitmask { 1 } else { 0 };
+                man_bucs[bit].push(f);
+            }
+
+            if i == 23 {
+                for m_b in man_bucs.iter_mut() {
+                    for f in m_b.iter() {
+                        fpoints[wr_ix] = *f;
+                        wr_ix += 1;
+                    }
+
+                    m_b.clear();
+                }
+            } else {
+                e_b.clear();
+                for m_b in man_bucs.iter_mut() {
+                    for f in m_b.iter() {
+                        e_b.push(*f);
+                    }
+
+                    m_b.clear();
+                }
+            }
+        }
     }
 }
 
@@ -98,11 +102,6 @@ mod sort_tests {
         let max_fraction_of_max = u32::MAX ^ 0b0111_1111;
         let max_of_min: u32 = 0b0111_1111;
         let total_max = u32::MAX ^ 0b1000_0000;
-
-        // println!("{}", auxies::get(max_fraction_of_max));
-        // println!("{}", auxies::get(max_fraction_of_min));
-        // println!("{}", auxies::get(total_max));
-        // println!("{}", auxies::get(max_of_min));
 
         let mut arr = [
             total_max,

@@ -1,4 +1,3 @@
-use super::FPoint;
 /// THIS SORT TREATS WHOLE FLOATING POINT NUMBER AS POLYNOMIAL
 /// SORTING IS BASED ON COMPARISON OF MONOMIALS
 /// DOWNSIDE IS COMPLEXITY AND USE OF INSERTION SORT
@@ -17,6 +16,7 @@ use super::FPoint;
 /// | exponent | 23| 22| 21| 20| 19| 18| 17| 16| 15| 14| 13| 12| 11| 10| 9 | 8 | 7 | 6 | 5 | 4 | 3 | 2 | 1 | 0 |    | 7 |      | 6 | 5 | 4 | 3 | 2 | 1 | 0 |
 /// +----------------------------------------------------------------------------------------------------------+---------------+---------------------------+
 ///
+use super::FPoint;
 use std::rc::Rc;
 
 #[derive(Clone)]
@@ -361,7 +361,7 @@ mod sort_tests {
         let mut criterion = arr.clone().map(|x| (auxies::get(x), x));
         criterion.sort_by(|a, b| a.0.total_cmp(&b.0));
         let criterion = criterion.map(|x| x.1);
-        
+
         sort(&mut arr);
         assert_eq!(criterion, arr);
     }

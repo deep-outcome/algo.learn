@@ -59,12 +59,19 @@ impl PartialOrd for FPointKey {
 
         // T: Θ(25)
         for i in (0..25).rev() {
-            if l_p[i] < r_p[i] {
+            let left = l_p[i];
+            let right = r_p[i];
+
+            if left > right {
+                return false;
+            }
+
+            if right > left {
                 return true;
             }
         }
 
-        return false;
+        false
     }
 
     fn le(&self, _other: &Self) -> bool {
@@ -100,9 +107,6 @@ fn sort(fpoints: &mut [FPoint]) {
     }
 
     unsafe { keys.set_len(fpoints_len) }
-
-    // println!("\n{:?}\n", keys);
-    // println!("{:?}", fpoints);
 
     // insertion sort
     // T: Ο(n²)
@@ -295,11 +299,20 @@ mod lt_tests {
         assert!(!(fpk2 < fpk1));
         assert!(!(fpk1 < fpk2));
     }
+
+    #[test]
+    fn test4() {
+        let fpk1 = FPointKey::new(0b_1111_1111_1111_1111_1111_1111___0111_1110);
+        let fpk2 = FPointKey::new(0b_1111_1111_1111_1111_1111_1111___0111_1111);
+
+        assert!(!(fpk2 < fpk1));
+    }
 }
 
 #[cfg(test)]
 mod sort_tests {
 
+    use super::super::auxies;
     use super::sort;
 
     #[test]
@@ -317,46 +330,38 @@ mod sort_tests {
     #[test]
     fn load_test() {
         let min_mant_min_exp = 0 | 0b_1000_0000;
+        let a = 0b_0101_0101_0101_0101_0101_0101___1010_1010;
+        let b = 0b_1010_1010_1010_1010_1010_1010___1010_1010;
+
         let one_half = 0 | 0b_1110_0111;
         let one = 0 | 0b_1110_1000;
         let two = 0 | 0b_1110_1001;
-        let min_mant_zer_exp = 0;
-        let max_mant_zer_exp = 0;
-        let min_mant_max_exp = 0 | 0b_0111_1111;
 
-        let a: u32 = 0b_0101_0101_0101_0101_0101_0101___1010_1010;
-        let b: u32 = 0b_1010_1010_1010_1010_1010_1010___1010_1010;
+        let min_mant_zer_exp = 0;
+        let max_mant_zer_exp = u32::MAX ^ 0b_1111_1111;
 
         let c: u32 = 0b_0101_0101_0101_0101_0101_0101___0101_0101;
         let d: u32 = 0b_1010_1010_1010_1010_1010_1010___0101_0101;
+        let min_mant_max_exp = 0 | 0b_0111_1111;
 
         let mut arr = [
+            min_mant_max_exp,
             d,
             c,
-            b,
-            a,
-            min_mant_max_exp,
-            min_mant_zer_exp,
             max_mant_zer_exp,
+            min_mant_zer_exp,
             two,
             one,
             one_half,
-            min_mant_min_exp,
-        ];
-        let criterion = [
-            min_mant_min_exp,
-            one_half,
-            one,
-            two,
-            min_mant_zer_exp,
-            max_mant_zer_exp,
-            min_mant_max_exp,
-            a,
             b,
-            c,
-            d,
+            a,
+            min_mant_min_exp,
         ];
 
+        let mut criterion = arr.clone().map(|x| (auxies::get(x), x));
+        criterion.sort_by(|a, b| a.0.total_cmp(&b.0));
+        let criterion = criterion.map(|x| x.1);
+        
         sort(&mut arr);
         assert_eq!(criterion, arr);
     }

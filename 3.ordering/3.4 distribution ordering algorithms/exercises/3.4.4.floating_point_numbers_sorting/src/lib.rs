@@ -1,5 +1,6 @@
 mod auxies;
 mod lex_sort;
+mod mem_eff_lex_sort;
 mod poly_sort;
 
 mod consts {

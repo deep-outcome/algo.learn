@@ -25,14 +25,18 @@ fn sort(fpoints: &mut [FPoint]) {
 
     let sp_cp_mut = bucs.spare_capacity_mut();
 
+    // T: Θ(2²⁴)
+    // S: Θ(2²⁴)
     for cp in sp_cp_mut {
-        cp.write(Vec::<FPoint>::new());
+        cp.write(Vec::<FPoint>::with_capacity(0));
     }
 
     unsafe {
         bucs.set_len(perms);
     }
 
+    // T: Θ(n)
+    // S: Θ(n)
     for &f in fpoints.iter() {
         let mant = f >> 8;
 
@@ -43,6 +47,8 @@ fn sort(fpoints: &mut [FPoint]) {
 
     wr_output(&mut bucs, fpoints);
 
+    // T: Θ(n)
+    // S: Θ(n)
     for &f in fpoints.iter() {
         let mut exp = (f & EXP_MASK) as usize;
         if SIG_BIT_MASK & f != SIG_BIT_MASK {
@@ -61,6 +67,8 @@ fn wr_output(bucs: &mut Vec<Vec<FPoint>>, fpoints: &mut [FPoint]) {
     let fpoints_len = fpoints.len();
 
     let mut wr_ix = 0;
+
+    // T: Ο(2²⁴)
     for b in bucs {
         if b.len() == 0 {
             continue;
@@ -81,7 +89,7 @@ fn wr_output(bucs: &mut Vec<Vec<FPoint>>, fpoints: &mut [FPoint]) {
 #[cfg(test)]
 mod sort_tests {
 
-    // use super::super::auxies;
+    use super::super::auxies;
     use super::sort;
 
     #[test]
@@ -115,15 +123,39 @@ mod sort_tests {
 
     #[test]
     fn load_test() {
-        let a: u32 = 0b_0101_0101_0101_0101_0101_0101___1010_1010;
-        let b: u32 = 0b_1010_1010_1010_1010_1010_1010___1010_1010;
+        let min_mant_min_exp = 0 | 0b_1000_0000;
+        let a = 0b_0101_0101_0101_0101_0101_0101___1010_1010;
+        let b = 0b_1010_1010_1010_1010_1010_1010___1010_1010;
+
+        let one_half = 0 | 0b_1110_0111;
+        let one = 0 | 0b_1110_1000;
+        let two = 0 | 0b_1110_1001;
+
+        let min_mant_zer_exp = 0;
+        let max_mant_zer_exp = u32::MAX ^ 0b_1111_1111;
 
         let c: u32 = 0b_0101_0101_0101_0101_0101_0101___0101_0101;
         let d: u32 = 0b_1010_1010_1010_1010_1010_1010___0101_0101;
+        let min_mant_max_exp = 0 | 0b_0111_1111;
 
-        let mut arr = [d, c, b, a];
-        let criterion = [a, b, c, d];
+        let mut arr = [
+            min_mant_max_exp,
+            d,
+            c,
+            max_mant_zer_exp,
+            min_mant_zer_exp,
+            two,
+            one,
+            one_half,
+            b,
+            a,
+            min_mant_min_exp,
+        ];
 
+        let mut criterion = arr.clone().map(|x| (auxies::get(x), x));
+        criterion.sort_by(|a, b| a.0.total_cmp(&b.0));
+        let criterion = criterion.map(|x| x.1);
+        
         sort(&mut arr);
         assert_eq!(criterion, arr);
     }

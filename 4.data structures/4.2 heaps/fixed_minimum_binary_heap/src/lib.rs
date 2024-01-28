@@ -8,7 +8,7 @@ pub struct FixMinBinHeap<T> {
 /// Uses `core::Clone`. Wrap large types into `std::rc::Rc` or `std::sync::Arc`.
 impl<T> FixMinBinHeap<T>
 where
-    T: PartialOrd + Clone,
+    T: PartialOrd + Clone + Default,
 {
     pub fn new(levels: u8) -> Self {
         assert!(
@@ -17,7 +17,7 @@ where
         );
 
         let nodes = 2usize.pow((levels + 1) as u32) - 1;
-        let data = vec![None; nodes].into_boxed_slice();
+        let data = vec![T::default(); nodes].into_boxed_slice();
 
         Self { data, len: 0 }
     }
@@ -32,7 +32,7 @@ where
             return Err(());
         }
 
-        data[wrix] = Some(t);
+        data[wrix] = t;
         self.len = wrix + 1;
 
         self.bubble_up(wrix);
@@ -40,7 +40,7 @@ where
         Ok(())
     }
 
-    /// `desix` = descendat index
+    // `desix` = descendat index
     fn bubble_up(&mut self, mut desix: usize) {
         let data = &mut self.data;
 
@@ -62,8 +62,12 @@ where
         }
     }
 
-    pub fn min(&self) -> Option<&T> {
-        self.data[0].as_ref()
+    pub fn peek_min(&self) -> Option<&T> {
+        if self.len == 0 {
+            return None;
+        } else {
+            Some(&self.data[0])
+        }
     }
 
     pub fn extract_min(&mut self) -> Option<T> {
@@ -82,10 +86,10 @@ where
         self.len = new_len;
         self.buble_down(0);
 
-        min
+        Some(min)
     }
 
-    /// `pred_ix` = predecessor index
+    // `pred_ix` = predecessor index
     fn buble_down(&mut self, mut pred_ix: usize) {
         let len = self.len;
         let data = &mut self.data;
@@ -157,7 +161,7 @@ mod tests_of_units {
                 assert_eq!(count, heap.len);
             }
 
-            let case: &[Option<i16>] = &[Some(8), Some(9), None];
+            let case: &[i16] = &[8, 9, 0];
             assert_eq!(case, heap.data.deref());
         }
 
@@ -170,13 +174,6 @@ mod tests_of_units {
         }
     }
 
-    fn map_to_option(num: i16) -> Option<i16> {
-        if num == 0 {
-            return None;
-        }
-        Some(num)
-    }
-
     #[test]
     fn bubble_up() {
         let mut heap = FixMinBinHeap::<i16>::new(3);
@@ -187,7 +184,7 @@ mod tests_of_units {
         let mut wri_ix = 0;
         for n in nums {
             unsafe {
-                data.offset(wri_ix).write(Some(n));
+                data.offset(wri_ix).write(n);
             }
 
             heap.bubble_up(wri_ix as usize);
@@ -195,8 +192,6 @@ mod tests_of_units {
         }
 
         let case: [i16; 15] = [1, 2, 5, 4, 2, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0];
-        let case = case.map(map_to_option);
-
         assert_eq!(case, heap.data.deref());
     }
 
@@ -206,17 +201,17 @@ mod tests_of_units {
         #[test]
         fn none_min() {
             let heap = FixMinBinHeap::<usize>::new(0);
-            assert_eq!(None, heap.min());
+            assert_eq!(None, heap.peek_min());
         }
 
         #[test]
         fn some_min() {
             let heap: FixMinBinHeap<usize> = FixMinBinHeap {
-                data: Box::new([Some(5)]),
+                data: Box::new([5]),
                 len: 1,
             };
 
-            assert_eq!(heap.data[0].as_ref(), heap.min());
+            assert_eq!(Some(&heap.data[0]), heap.peek_min());
         }
     }
 
@@ -228,7 +223,7 @@ mod tests_of_units {
             let mut heap = FixMinBinHeap::<usize>::new(1);
             let data = &mut heap.data;
 
-            let test_data = [Some(8), Some(9), Some(10)];
+            let test_data = [8, 9, 10];
             data[0] = test_data[0];
             data[1] = test_data[2];
             data[2] = test_data[1];
@@ -237,7 +232,7 @@ mod tests_of_units {
             heap.len = heap_len;
 
             for td in test_data {
-                assert_eq!(td, heap.extract_min());
+                assert_eq!(Some(td), heap.extract_min());
                 heap_len -= 1;
                 assert_eq!(heap_len, heap.len);
             }
@@ -253,13 +248,10 @@ mod tests_of_units {
     #[test]
     fn bubble_down() {
         let heap_data: [i16; 15] = [7, 2, 5, 4, 2, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0];
-        let heap_data = heap_data.map(map_to_option);
         let mut heap: FixMinBinHeap<i16> = FixMinBinHeap {
             data: Box::new(heap_data),
             len: 9,
         };
-
-        let heap_data_ptr: *mut Option<i16> = heap.data.as_mut_ptr();
 
         {
             heap.buble_down(0);
@@ -267,9 +259,10 @@ mod tests_of_units {
             let heap_data = &heap.data;
 
             let test_data: [i16; 15] = [2, 2, 5, 4, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0];
-            let test_data = test_data.map(map_to_option);
             assert_eq!(test_data, heap_data.deref());
         }
+
+        let heap_data_ptr: *mut i16 = heap.data.as_mut_ptr();
 
         let offset = 8;
         for i in 0..3 {
@@ -285,7 +278,6 @@ mod tests_of_units {
             let heap_data = &heap.data;
 
             let test_data: [i16; 15] = [5, 7, 6, 9, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0];
-            let test_data = test_data.map(map_to_option);
             assert_eq!(test_data, heap_data.deref());
         }
 
@@ -303,7 +295,6 @@ mod tests_of_units {
             let heap_data = &heap.data;
 
             let test_data: [i16; 15] = [8, 9, 8, 9, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0];
-            let test_data = test_data.map(map_to_option);
             assert_eq!(test_data, heap_data.deref());
         }
     }

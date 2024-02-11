@@ -288,7 +288,7 @@ mod tests_of_units {
         assert_eq!(case, heap.data.deref());
     }
 
-    mod min {
+    mod peek_min {
         use super::super::FixMinBinHeap;
 
         #[test]
@@ -338,56 +338,61 @@ mod tests_of_units {
         }
     }
 
-    #[test]
-    fn bubble_down() {
-        let heap_data: [i16; 15] = [7, 2, 5, 4, 2, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0];
-        let mut heap: FixMinBinHeap<i16> = FixMinBinHeap {
-            data: Box::new(heap_data),
-            len: 9,
-        };
+    mod bubble_down {
 
-        {
+        use super::FixMinBinHeap;
+        use std::ops::Deref;
+
+        #[test]
+        fn bubble_down() {
+            let heap_data: [i16; 15] = [7, 2, 5, 4, 2, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0];
+            let mut heap: FixMinBinHeap<i16> = FixMinBinHeap {
+                data: Box::new(heap_data),
+                len: 9,
+            };
+
             heap.buble_down(0);
 
             let heap_data = &heap.data;
 
             let test_data: [i16; 15] = [2, 2, 5, 4, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0];
             assert_eq!(test_data, heap_data.deref());
+
+            segment_test(
+                &mut heap,
+                8,
+                3,
+                &[5, 7, 6, 9, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0],
+            );
+            segment_test(
+                &mut heap,
+                5,
+                4,
+                &[8, 9, 8, 9, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0],
+            );
         }
 
-        let heap_data_ptr: *mut i16 = heap.data.as_mut_ptr();
+        fn segment_test<T>(
+            heap: &mut FixMinBinHeap<T>,
+            offset: isize,
+            bubble_count: isize,
+            test_data: &[T; 15],
+        ) where
+            T: PartialOrd + Clone + Default + std::fmt::Debug,
+        {
+            let heap_data_ptr: *mut T = heap.data.as_mut_ptr();
 
-        let offset = 8;
-        for i in 0..3 {
-            unsafe {
-                heap_data_ptr.write(heap_data_ptr.offset(offset - i).read());
+            for i in 0..bubble_count {
+                unsafe {
+                    heap_data_ptr.write(heap_data_ptr.offset(offset - i).read());
+                }
+
+                heap.len = heap.len - 1;
+                heap.buble_down(0);
             }
 
-            heap.len = heap.len - 1;
-            heap.buble_down(0);
-        }
-
-        {
             let heap_data = &heap.data;
 
-            let test_data: [i16; 15] = [5, 7, 6, 9, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0];
-            assert_eq!(test_data, heap_data.deref());
-        }
-
-        let offset = 5;
-        for i in 0..4 {
-            unsafe {
-                heap_data_ptr.write(heap_data_ptr.offset(offset - i).read());
-            }
-
-            heap.len = heap.len - 1;
-            heap.buble_down(0);
-        }
-
-        {
-            let heap_data = &heap.data;
-
-            let test_data: [i16; 15] = [8, 9, 8, 9, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0];
             assert_eq!(test_data, heap_data.deref());
         }
     }

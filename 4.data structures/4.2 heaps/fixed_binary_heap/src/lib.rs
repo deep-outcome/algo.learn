@@ -378,77 +378,83 @@ mod tests_of_units {
         }
     }
 
-    #[test]
-    fn bubble_down_minimal() {
-        let heap_data: [i16; 15] = [7, 2, 5, 4, 2, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0];
-        let mut heap: FixBinHeap<i16> = FixBinHeap {
-            data: Box::new(heap_data),
-            len: 9,
-            form: FixBinHeapForm::Minimal,
-        };
+    mod bubble_down {
 
-        {
+        use super::super::{FixBinHeap, FixBinHeapForm};
+        use std::ops::Deref;
+
+        #[test]
+        fn minimal() {
+            let heap_data: [i16; 15] = [7, 2, 5, 4, 2, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0];
+            let mut heap: FixBinHeap<i16> = FixBinHeap {
+                data: Box::new(heap_data),
+                len: 9,
+                form: FixBinHeapForm::Minimal,
+            };
+
+            {
+                heap.buble_down(0);
+
+                let heap_data = &heap.data;
+
+                let test_data: [i16; 15] = [2, 2, 5, 4, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0];
+                assert_eq!(test_data, heap_data.deref());
+            }
+
+            #[rustfmt::skip]
+            {
+                segment_test(&mut heap,8,3,&[5, 7, 6, 9, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0],);
+                segment_test(&mut heap,5,4,&[8, 9, 8, 9, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0],);                       
+            }
+        }
+
+        #[test]
+        fn maximal() {
+            let heap_data: [i16; 15] = [5, 9, 10, 7, 7, 8, 6, 4, 3, 2, 1, 4, 3, 5, 0];
+            let mut heap: FixBinHeap<i16> = FixBinHeap {
+                data: Box::new(heap_data),
+                len: 13,
+                form: FixBinHeapForm::Maximal,
+            };
+
             heap.buble_down(0);
+            let heap_data = &heap.data;
+
+            let test_data: [i16; 15] = [10, 9, 8, 7, 7, 5, 6, 4, 3, 2, 1, 4, 3, 5, 0];
+            assert_eq!(test_data, heap_data.deref());
+
+            #[rustfmt::skip]
+            {
+                segment_test(&mut heap,12,3,&[7, 7, 6, 4, 2, 5, 4, 3, 3, 1, 1, 4, 3, 5, 0],);
+                segment_test(&mut heap,9,3,&[5, 4, 4, 3, 2, 3, 1, 1, 3, 1, 1, 4, 3, 5, 0],);
+                segment_test(&mut heap,6,3,&[3, 2, 3, 1, 2, 3, 1, 1, 3, 1, 1, 4, 3, 5, 0],);
+                segment_test(&mut heap,3,2,&[2, 1, 1, 1, 2, 3, 1, 1, 3, 1, 1, 4, 3, 5, 0],);            
+            }
+        }
+
+        fn segment_test<T>(
+            heap: &mut FixBinHeap<T>,
+            offset: isize,
+            bubble_count: isize,
+            test_data: &[T; 15],
+        ) where
+            T: PartialOrd + Clone + Default + std::fmt::Debug,
+        {
+            let heap_data_ptr: *mut T = heap.data.as_mut_ptr();
+
+            for i in 0..bubble_count {
+                unsafe {
+                    heap_data_ptr.write(heap_data_ptr.offset(offset - i).read());
+                }
+
+                heap.len = heap.len - 1;
+                heap.buble_down(0);
+            }
 
             let heap_data = &heap.data;
 
-            let test_data: [i16; 15] = [2, 2, 5, 4, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0];
             assert_eq!(test_data, heap_data.deref());
         }
-
-        #[rustfmt::skip]
-        {
-            bubble_down_segment_test(&mut heap,8,3,&[5, 7, 6, 9, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0],);
-            bubble_down_segment_test(&mut heap,5,4,&[8, 9, 8, 9, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0],);                       
-        }
-    }
-
-    #[test]
-    fn bubble_down_maximal() {
-        let heap_data: [i16; 15] = [5, 9, 10, 7, 7, 8, 6, 4, 3, 2, 1, 4, 3, 5, 0];
-        let mut heap: FixBinHeap<i16> = FixBinHeap {
-            data: Box::new(heap_data),
-            len: 13,
-            form: FixBinHeapForm::Maximal,
-        };
-
-        heap.buble_down(0);
-        let heap_data = &heap.data;
-
-        let test_data: [i16; 15] = [10, 9, 8, 7, 7, 5, 6, 4, 3, 2, 1, 4, 3, 5, 0];
-        assert_eq!(test_data, heap_data.deref());
-
-        #[rustfmt::skip]
-        {
-            bubble_down_segment_test(&mut heap,12,3,&[7, 7, 6, 4, 2, 5, 4, 3, 3, 1, 1, 4, 3, 5, 0],);
-            bubble_down_segment_test(&mut heap,9,3,&[5, 4, 4, 3, 2, 3, 1, 1, 3, 1, 1, 4, 3, 5, 0],);
-            bubble_down_segment_test(&mut heap,6,3,&[3, 2, 3, 1, 2, 3, 1, 1, 3, 1, 1, 4, 3, 5, 0],);
-            bubble_down_segment_test(&mut heap,3,2,&[2, 1, 1, 1, 2, 3, 1, 1, 3, 1, 1, 4, 3, 5, 0],);            
-        }
-    }
-
-    fn bubble_down_segment_test<T>(
-        heap: &mut FixBinHeap<T>,
-        offset: isize,
-        bubble_count: isize,
-        test_data: &[T; 15],
-    ) where
-        T: PartialOrd + Clone + Default + std::fmt::Debug,
-    {
-        let heap_data_ptr: *mut T = heap.data.as_mut_ptr();
-
-        for i in 0..bubble_count {
-            unsafe {
-                heap_data_ptr.write(heap_data_ptr.offset(offset - i).read());
-            }
-
-            heap.len = heap.len - 1;
-            heap.buble_down(0);
-        }
-
-        let heap_data = &heap.data;
-
-        assert_eq!(test_data, heap_data.deref());
     }
 
     mod from_vec {

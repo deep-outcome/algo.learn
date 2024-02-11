@@ -1,8 +1,101 @@
 #![allow(dead_code)]
 
-pub struct FixMinBinHeap<T> {
-    data: Box<[Option<T>]>,
+pub const MAX_LEVELS: usize = 25;
+
+pub struct FixMinBinHeap<T>
+where
+    T: PartialOrd + Clone + Default,
+{
+    data: Box<[T]>,
     len: usize,
+}
+
+use std::convert::From;
+impl<T> From<&[T]> for FixMinBinHeap<T>
+where
+    T: PartialOrd + Clone + Default,
+{
+    /// Final capacity is aligned to maximal leaf capacity.
+    fn from(slice: &[T]) -> FixMinBinHeap<T> {
+        let len = slice.len();
+
+        let limit = (len as f64).log2();
+        let levels = limit.ceil() as usize;
+
+        assert!(
+            levels <= MAX_LEVELS,
+            "Input length is greater than maximal heap item count support."
+        );
+
+        let mut heap = FixMinBinHeap::<T>::new(levels);
+
+        let data = &mut heap.data;
+
+        let mut wr_ix = 0;
+        while wr_ix < len {
+            data[wr_ix] = slice[wr_ix].clone();
+            wr_ix += 1;
+        }
+
+        heap.len = len;
+
+        heap.sort();
+        heap
+    }
+}
+
+impl<T> From<Vec<T>> for FixMinBinHeap<T>
+where
+    T: PartialOrd + Clone + Default,
+{
+    /// Note that heap satiation cannot be guaranteed.
+    /// Heap will support `Vec<T>` capacity nodes.
+    fn from(vec: Vec<T>) -> FixMinBinHeap<T> {
+        let cap = vec.capacity();
+        let len = vec.len();
+
+        let mut vec = vec;
+        if len != cap {
+            for each in vec.spare_capacity_mut() {
+                each.write(T::default());
+            }
+
+            unsafe { vec.set_len(cap) }
+        }
+
+        let mut heap = FixMinBinHeap {
+            data: vec.into_boxed_slice(),
+            len,
+        };
+
+        heap.sort();
+        heap
+    }
+}
+
+impl<T> FixMinBinHeap<T>
+where
+    T: PartialOrd + Clone + Default,
+{
+    // TC: Ο(n)
+    fn sort(&mut self) {
+        let len = self.len;
+
+        if len == 0 {
+            return;
+        }
+
+        let mut ix = (self.len / 2) - 1;
+        loop {
+            self.buble_down(ix);
+
+            if ix == 0 {
+                break;
+            }
+
+            ix -= 1;
+        }
+    }
 }
 
 /// Uses `core::Clone`. Wrap large types into `std::rc::Rc` or `std::sync::Arc`.
@@ -10,9 +103,9 @@ impl<T> FixMinBinHeap<T>
 where
     T: PartialOrd + Clone + Default,
 {
-    pub fn new(levels: u8) -> Self {
+    pub fn new(levels: usize) -> Self {
         assert!(
-            levels < 26,
+            levels <= MAX_LEVELS,
             "Maximum supported levels is 25. 0 for root only."
         );
 
@@ -296,6 +389,101 @@ mod tests_of_units {
 
             let test_data: [i16; 15] = [8, 9, 8, 9, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0];
             assert_eq!(test_data, heap_data.deref());
+        }
+    }
+
+    mod from_vec {
+        use super::super::FixMinBinHeap;
+        use std::ops::Deref;
+
+        #[test]
+        fn from_vec_len() {
+            let vec = vec![9, 8, 7, 6];
+            let len = vec.len();
+            let ptr = vec.as_ptr();
+
+            let heap = FixMinBinHeap::from(vec);
+            assert_eq!(len, heap.len);
+            assert_eq!([6, 8, 7, 9], heap.data.deref());
+            assert_eq!(ptr, heap.data.deref().as_ptr());
+        }
+
+        #[test]
+        fn from_vec_cap() {
+            let nums = [9, 8, 7, 6];
+            let mut vec = Vec::with_capacity(5);
+
+            for n in nums {
+                vec.push(n);
+            }
+
+            let len = vec.len();
+            let ptr = vec.as_ptr();
+
+            let heap = FixMinBinHeap::from(vec);
+            assert_eq!(len, heap.len);
+            assert_eq!([6, 8, 7, 9, 0], heap.data.deref());
+            assert_eq!(ptr, heap.data.deref().as_ptr());
+        }
+    }
+
+    mod from_slice_ref {
+        use super::super::FixMinBinHeap;
+        use super::super::MAX_LEVELS;
+        use std::ops::Deref;
+
+        #[test]
+        fn basic_test() {
+            let nums = [9, 8, 7, 6];
+            let len = nums.len();
+
+            let heap = FixMinBinHeap::from(&nums as &[i32]);
+            assert_eq!(len, heap.len);
+            assert_eq!([6, 8, 7, 9, 0, 0, 0], heap.data.deref());
+        }
+
+        #[derive(PartialEq, Eq, PartialOrd, Clone, Default)]
+        struct ZeroSize();
+
+        #[test]
+        #[should_panic(expected = "Input length is greater than maximal heap item count support.")]
+        fn limit_test() {
+            let len = 2usize.pow(MAX_LEVELS as u32) + 1;
+            let mut vec = Vec::<ZeroSize>::with_capacity(len);
+
+            unsafe {
+                vec.set_len(len);
+            }
+
+            _ = FixMinBinHeap::from(&vec as &[ZeroSize]);
+        }
+    }
+
+    mod sort {
+        use super::super::FixMinBinHeap;
+
+        #[test]
+        fn zero_len_test() {
+            let mut heap = FixMinBinHeap {
+                data: Box::new([4, 3, 2, 1]),
+                len: 0,
+            };
+
+            heap.sort();
+
+            assert_eq!([4, 3, 2, 1], *heap.data);
+        }
+
+        #[test]
+        fn sorting() {
+            let mut heap = FixMinBinHeap {
+                data: Box::new([9, 8, 7, 6, 5, 4, 3, 2, 1, 0]),
+                len: 10,
+            };
+
+            heap.sort();
+
+            assert_eq!([0, 1, 3, 2, 5, 4, 7, 9, 6, 8], *heap.data);
         }
     }
 }

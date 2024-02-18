@@ -215,11 +215,12 @@ where
             }
 
             let predecessor = data[pred_ix].clone();
-            if cmp(&predecessor, &data[des_ix]) {
+            let descendant = data[des_ix].clone();
+            if cmp(&predecessor, &descendant) {
                 break;
             }
 
-            data[pred_ix] = data[des_ix].clone();
+            data[pred_ix] = descendant;
             data[des_ix] = predecessor;
 
             pred_ix = des_ix;

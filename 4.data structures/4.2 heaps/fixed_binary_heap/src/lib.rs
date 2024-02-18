@@ -84,7 +84,7 @@ where
 
         let mut ix = (self.len / 2) - 1;
         loop {
-            self.buble_down(ix);
+            self.bubble_down(ix);
 
             if ix == 0 {
                 break;
@@ -189,13 +189,13 @@ where
         data[0] = data[new_len].clone();
 
         self.len = new_len;
-        self.buble_down(0);
+        self.bubble_down(0);
 
         Some(root)
     }
 
     // `pred_ix` = predecessor index
-    fn buble_down(&mut self, mut pred_ix: usize) {
+    fn bubble_down(&mut self, mut pred_ix: usize) {
         let len = self.len;
         let cmp = self.cmp();
 
@@ -393,7 +393,7 @@ mod tests_of_units {
             };
 
             {
-                heap.buble_down(0);
+                heap.bubble_down(0);
 
                 let heap_data = &heap.data;
 
@@ -402,10 +402,9 @@ mod tests_of_units {
             }
 
             #[rustfmt::skip]
-            {
-                segment_test(&mut heap,8,3,&[5, 7, 6, 9, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0],);
-                segment_test(&mut heap,5,4,&[8, 9, 8, 9, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0],);                       
-            }
+            segment_test(&mut heap,8,3,&[5, 7, 6, 9, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0],);
+            #[rustfmt::skip]
+            segment_test(&mut heap,5,4,&[8, 9, 8, 9, 7, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0],);
         }
 
         #[test]
@@ -417,19 +416,20 @@ mod tests_of_units {
                 form: FixBinHeapForm::Maximal,
             };
 
-            heap.buble_down(0);
+            heap.bubble_down(0);
             let heap_data = &heap.data;
 
             let test_data: [i16; 15] = [10, 9, 8, 7, 7, 5, 6, 4, 3, 2, 1, 4, 3, 5, 0];
             assert_eq!(test_data, heap_data.deref());
 
             #[rustfmt::skip]
-            {
-                segment_test(&mut heap,12,3,&[7, 7, 6, 4, 2, 5, 4, 3, 3, 1, 1, 4, 3, 5, 0],);
-                segment_test(&mut heap,9,3,&[5, 4, 4, 3, 2, 3, 1, 1, 3, 1, 1, 4, 3, 5, 0],);
-                segment_test(&mut heap,6,3,&[3, 2, 3, 1, 2, 3, 1, 1, 3, 1, 1, 4, 3, 5, 0],);
-                segment_test(&mut heap,3,2,&[2, 1, 1, 1, 2, 3, 1, 1, 3, 1, 1, 4, 3, 5, 0],);            
-            }
+            segment_test(&mut heap,12,3,&[7, 7, 6, 4, 2, 5, 4, 3, 3, 1, 1, 4, 3, 5, 0],);
+            #[rustfmt::skip]
+            segment_test(&mut heap,9,3,&[5, 4, 4, 3, 2, 3, 1, 1, 3, 1, 1, 4, 3, 5, 0],);
+            #[rustfmt::skip]
+            segment_test(&mut heap,6,3,&[3, 2, 3, 1, 2, 3, 1, 1, 3, 1, 1, 4, 3, 5, 0],);
+            #[rustfmt::skip]
+            segment_test(&mut heap,3,2,&[2, 1, 1, 1, 2, 3, 1, 1, 3, 1, 1, 4, 3, 5, 0],);
         }
 
         fn segment_test<T>(
@@ -448,7 +448,7 @@ mod tests_of_units {
                 }
 
                 heap.len = heap.len - 1;
-                heap.buble_down(0);
+                heap.bubble_down(0);
             }
 
             let heap_data = &heap.data;

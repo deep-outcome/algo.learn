@@ -87,7 +87,7 @@ where
 
         let mut ix = (self.len / 2) - 1;
         loop {
-            self.buble_down(ix);
+            self.bubble_down(ix);
 
             if ix == 0 {
                 break;
@@ -177,13 +177,13 @@ where
         data[0] = data[new_len].clone();
 
         self.len = new_len;
-        self.buble_down(0);
+        self.bubble_down(0);
 
         Some(min)
     }
 
     // `pred_ix` = predecessor index
-    fn buble_down(&mut self, mut pred_ix: usize) {
+    fn bubble_down(&mut self, mut pred_ix: usize) {
         let len = self.len;
         let data = &mut self.data;
 
@@ -351,7 +351,7 @@ mod tests_of_units {
                 len: 9,
             };
 
-            heap.buble_down(0);
+            heap.bubble_down(0);
 
             let heap_data = &heap.data;
 
@@ -388,7 +388,7 @@ mod tests_of_units {
                 }
 
                 heap.len = heap.len - 1;
-                heap.buble_down(0);
+                heap.bubble_down(0);
             }
 
             let heap_data = &heap.data;

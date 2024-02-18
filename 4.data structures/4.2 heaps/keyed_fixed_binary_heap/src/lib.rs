@@ -119,7 +119,7 @@ where
 
         let mut ix = (self.len / 2) - 1;
         loop {
-            self.buble_down(ix);
+            self.bubble_down(ix);
 
             if ix == 0 {
                 break;
@@ -226,13 +226,13 @@ where
         data[0] = data[new_len].clone();
 
         self.len = new_len;
-        self.buble_down(0);
+        self.bubble_down(0);
 
         Some(root)
     }
 
     // `pred_ix` = predecessor index
-    fn buble_down(&mut self, mut pred_ix: usize) {
+    fn bubble_down(&mut self, mut pred_ix: usize) {
         let len = self.len;
         let cmp = self.cmp();
 
@@ -430,7 +430,7 @@ mod tests_of_units {
             };
 
             {
-                heap.buble_down(0);
+                heap.bubble_down(0);
 
                 let heap_data = &heap.data;
 
@@ -453,7 +453,7 @@ mod tests_of_units {
                 form: FixBinHeapForm::Minimal,
             };
 
-            heap.buble_down(0);
+            heap.bubble_down(0);
             let heap_data = &heap.data;
 
             let test_data: [u16; 15] = [10, 9, 8, 7, 7, 5, 6, 4, 3, 2, 1, 4, 3, 5, 0];
@@ -486,7 +486,7 @@ mod tests_of_units {
                 }
 
                 heap.len = heap.len - 1;
-                heap.buble_down(0);
+                heap.bubble_down(0);
             }
 
             let heap_data = &heap.data;

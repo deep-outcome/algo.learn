@@ -155,7 +155,6 @@ where
             let predecessor = data[predix].clone();
             let descendant = data[desix].clone();
 
-            //if descendant < predecessor {
             if cmp(&descendant, &predecessor) {
                 data[predix] = descendant;
                 data[desix] = predecessor;

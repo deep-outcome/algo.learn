@@ -191,7 +191,7 @@ where
 
             let predecessor = data[predix].clone();
             let descendant = data[desix].clone();
-            
+
             if cmp(&descendant.key(), &predecessor.key()) {
                 data[predix] = descendant;
                 data[desix] = predecessor;

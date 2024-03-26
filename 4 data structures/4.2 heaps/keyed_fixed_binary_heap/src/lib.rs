@@ -179,7 +179,7 @@ where
         panic!("Unsupported heap form.");
     }
 
-    // `desix` = descendat index
+    // `desix` = descendant index
     fn bubble_up(&mut self, mut desix: usize) {
         let cmp = self.cmp();
 
@@ -238,7 +238,7 @@ where
         let data = &mut self.data;
 
         loop {
-            // descendat index
+            // descendant index
             let mut des_ix = 2 * pred_ix + 1;
 
             if des_ix >= len {
@@ -251,11 +251,12 @@ where
             }
 
             let predecessor = data[pred_ix].clone();
-            if cmp(&predecessor.key(), &data[des_ix].key()) {
+            let descendant = data[des_ix].clone();
+            if cmp(&predecessor.key(), &descendant.key()) {
                 break;
             }
 
-            data[pred_ix] = data[des_ix].clone();
+            data[pred_ix] = descendant;
             data[des_ix] = predecessor;
 
             pred_ix = des_ix;
@@ -381,26 +382,27 @@ mod tests_of_units {
         #[test]
         fn exctracting() {
             let test_cases = [
-                (FixBinHeapForm::Maximal, [8, 10, 9], [8, 9, 10]),
-                (FixBinHeapForm::Minimal, [10, 8, 9], [10, 9, 8]),
+                (FixBinHeapForm::Maximal, [8, 10, 9, 10], [8, 9, 10, 10]),
+                (FixBinHeapForm::Minimal, [10, 8, 9, 8], [10, 9, 8, 8]),
             ];
 
             for case in test_cases {
-                let mut heap = FixBinHeap::<u16>::new(1, case.0);
+                let mut heap = FixBinHeap::<u16>::new(2, case.0);
                 let data = &mut heap.data;
 
-                let test_data = case.1;
+                let mut heap_len = 4;
+
+                let input_data = case.1;
                 let mut ix = 0;
-                while ix < 3 {
-                    data[ix] = test_data[ix];
+                while ix < heap_len {
+                    data[ix] = input_data[ix];
                     ix += 1;
                 }
 
-                let mut heap_len = 3;
                 heap.len = heap_len;
 
-                for td in case.2 {
-                    assert_eq!(Some(td), heap.extract_root());
+                for num in case.2 {
+                    assert_eq!(Some(num), heap.extract_root());
                     heap_len -= 1;
                     assert_eq!(heap_len, heap.len);
                 }
@@ -420,7 +422,7 @@ mod tests_of_units {
         use std::ops::Deref;
 
         #[test]
-        fn minimal() {
+        fn maximal() {
             let heap_data: [u16; 15] = [7, 2, 5, 4, 2, 8, 6, 9, 7, 7, 0, 0, 0, 0, 0];
             let mut heap: FixBinHeap<u16> = FixBinHeap {
                 data: Box::new(heap_data),
@@ -444,7 +446,7 @@ mod tests_of_units {
         }
 
         #[test]
-        fn maximal() {
+        fn minimal() {
             let heap_data: [u16; 15] = [5, 9, 10, 7, 7, 8, 6, 4, 3, 2, 1, 4, 3, 5, 0];
             let mut heap: FixBinHeap<u16> = FixBinHeap {
                 data: Box::new(heap_data),

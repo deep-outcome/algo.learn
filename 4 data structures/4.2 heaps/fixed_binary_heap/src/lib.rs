@@ -142,7 +142,7 @@ where
         panic!("Unsupported heap form.");
     }
 
-    // `desix` = descendat index
+    // `desix` = descendant index
     fn bubble_up(&mut self, mut desix: usize) {
         let cmp = self.cmp();
 
@@ -201,7 +201,7 @@ where
         let data = &mut self.data;
 
         loop {
-            // descendat index
+            // descendant index
             let mut des_ix = 2 * pred_ix + 1;
 
             if des_ix >= len {
@@ -345,22 +345,23 @@ mod tests_of_units {
         #[test]
         fn exctracting() {
             let test_cases = [
-                (FixBinHeapForm::Minimal, [8, 10, 9], [8, 9, 10]),
-                (FixBinHeapForm::Maximal, [10, 8, 9], [10, 9, 8]),
+                (FixBinHeapForm::Minimal, [8, 10, 9, 10], [8, 9, 10, 10]),
+                (FixBinHeapForm::Maximal, [10, 8, 9, 8], [10, 9, 8, 8]),
             ];
 
             for case in test_cases {
-                let mut heap = FixBinHeap::<usize>::new(1, case.0);
+                let mut heap = FixBinHeap::<usize>::new(2, case.0);
                 let data = &mut heap.data;
+
+                let mut heap_len = 4;
 
                 let test_data = case.1;
                 let mut ix = 0;
-                while ix < 3 {
+                while ix < heap_len {
                     data[ix] = test_data[ix];
                     ix += 1;
                 }
 
-                let mut heap_len = 3;
                 heap.len = heap_len;
 
                 for td in case.2 {

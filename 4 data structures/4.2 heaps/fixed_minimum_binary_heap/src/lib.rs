@@ -133,7 +133,7 @@ where
         Ok(())
     }
 
-    // `desix` = descendat index
+    // `desix` = descendant index
     fn bubble_up(&mut self, mut desix: usize) {
         let data = &mut self.data;
 
@@ -188,7 +188,7 @@ where
         let data = &mut self.data;
 
         loop {
-            // descendat index
+            // descendant index
             let mut des_ix = 2 * pred_ix + 1;
 
             if des_ix >= len {
@@ -314,16 +314,21 @@ mod tests_of_units {
 
         #[test]
         fn exctracting() {
-            let mut heap = FixMinBinHeap::<usize>::new(1);
+            let mut heap = FixMinBinHeap::<usize>::new(2);
             let data = &mut heap.data;
 
-            let test_data = [8, 9, 10];
-            data[0] = test_data[0];
-            data[1] = test_data[2];
-            data[2] = test_data[1];
+            let mut test_data = [8, 10, 9, 10];
 
-            let mut heap_len = 3;
+            let mut heap_len = 4;
             heap.len = heap_len;
+
+            let mut ix = 0;
+            while ix < heap_len {
+                data[ix] = test_data[ix];
+                ix += 1;
+            }
+
+            test_data.sort();
 
             for td in test_data {
                 assert_eq!(Some(td), heap.extract_min());

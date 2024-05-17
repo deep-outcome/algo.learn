@@ -675,8 +675,6 @@ mod tests_of_units {
             let c = '🫀';
             let letter = Letter::<usize>::new(c);
 
-            println!("{:?}", letter);
-
             assert_eq!(c, letter.value);
             assert!(letter.alphabet.is_none());
             assert!(letter.entry.is_none());

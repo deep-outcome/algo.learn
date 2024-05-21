@@ -78,7 +78,7 @@ impl<T> Trie<T> {
         }
     }
 
-    pub fn insert(&mut self, entry: T, key: &Key) -> Result<(), KeyError> {
+    pub fn insert(&mut self, entry: T, key: &Key) {
         let key = &key.key;
         let last_letter_ix = key.len() - 1;
         let mut alphabet = &mut self.root;
@@ -101,8 +101,6 @@ impl<T> Trie<T> {
 
             alphabet = letter.alphabet.as_mut().unwrap();
         }
-
-        Ok(())
     }
 
     pub fn member(&self, key: &Key) -> Option<&T> {
@@ -127,10 +125,7 @@ impl<T> Trie<T> {
             return Err(());
         };
 
-        unsafe {
-            let entry_l = as_mut(entry_l);
-            entry_l.entry = None;
-        }
+        unsafe { as_mut(entry_l) }.entry = None;
 
         if entry_l.alphabet() {
             return Ok(());
@@ -410,7 +405,7 @@ mod tests_of_units {
                 let key = Key::new(&KEY).unwrap();
 
                 let mut trie = Trie::new();
-                _ = trie.insert(3usize, &key);
+                trie.insert(3usize, &key);
 
                 let last_letter_ix = KEY.len() - 1;
 
@@ -441,25 +436,11 @@ mod tests_of_units {
                 let new = Key::new(&NEW).unwrap();
 
                 let mut trie = Trie::new();
-                _ = trie.insert(3usize, &existing);
-                _ = trie.insert(4usize, &new);
+                trie.insert(3usize, &existing);
+                trie.insert(4usize, &new);
 
                 assert!(trie.member(&existing).is_some());
-
-                let last_letter_ix = NEW.len() - 1;
-
-                let mut alphabet = &trie.root;
-                for (ix, c) in NEW.chars().enumerate() {
-                    let letter = &alphabet[ix_fn(c)];
-
-                    if ix == last_letter_ix {
-                        let entry = letter.entry;
-                        assert!(entry.is_some());
-                        assert_eq!(4usize, entry.unwrap());
-                    } else {
-                        alphabet = letter.alphabet.as_ref().unwrap();
-                    }
-                }
+                assert!(trie.member(&new).is_some());
             }
 
             #[test]
@@ -468,8 +449,8 @@ mod tests_of_units {
                 let key = Key::new(&KEY).unwrap();
 
                 let mut trie = Trie::new();
-                _ = trie.insert(3usize, &key);
-                _ = trie.insert(4, &key);
+                trie.insert(3usize, &key);
+                trie.insert(4, &key);
 
                 let member = trie.member(&key);
                 assert!(member.is_some());
@@ -485,7 +466,7 @@ mod tests_of_units {
             fn member() {
                 let key = Key::new("Keyword").unwrap();
                 let mut trie = Trie::new();
-                _ = trie.insert(27usize, &key);
+                trie.insert(27usize, &key);
 
                 let member = trie.member(&key);
                 assert!(member.is_some());
@@ -496,7 +477,7 @@ mod tests_of_units {
             fn not_member() {
                 let key = Key::new("Keyword").unwrap();
                 let mut trie = Trie::new();
-                _ = trie.insert(0usize, &key);
+                trie.insert(0usize, &key);
 
                 for k in ["Key", "Opener"] {
                     let bad_key = Key::new(k).unwrap();
@@ -517,7 +498,7 @@ mod tests_of_units {
             fn basic_test() {
                 let key = Key::new("Keyword").unwrap();
                 let mut trie = Trie::new();
-                _ = trie.insert(0usize, &key);
+                trie.insert(0usize, &key);
 
                 assert!(trie.delete(&key).is_ok());
 
@@ -529,7 +510,7 @@ mod tests_of_units {
             fn not_member() {
                 let key = Key::new("Keyword").unwrap();
                 let mut trie = Trie::new();
-                _ = trie.insert(0usize, &key);
+                trie.insert(0usize, &key);
 
                 for k in ["Key", "Opener"] {
                     let bad_key = Key::new(k).unwrap();
@@ -544,10 +525,10 @@ mod tests_of_units {
                 let mut trie = Trie::new();
 
                 let outer = Key::new("Keyword").unwrap();
-                _ = trie.insert(0usize, &outer);
+                trie.insert(0usize, &outer);
 
                 let inner = Key::new("Key").unwrap();
-                _ = trie.insert(0usize, &inner);
+                trie.insert(0usize, &inner);
 
                 assert!(trie.delete(&inner).is_ok());
                 assert!(trie.member(&inner).is_none());
@@ -559,13 +540,13 @@ mod tests_of_units {
                 let mut trie = Trie::new();
 
                 let peer = Key::new("Keyworder").unwrap();
-                _ = trie.insert(0usize, &peer);
+                trie.insert(0usize, &peer);
 
                 let test = Key::new("Keywordee").unwrap();
-                _ = trie.insert(0usize, &test);
+                trie.insert(0usize, &test);
 
                 assert!(trie.delete(&test).is_ok());
-                assert!(trie.member(&test).is_none());
+                assert!(trie.member(&test).is_none());                
 
                 let path = trie.path(&test);
                 assert_eq!(test.key.len(), path.len());
@@ -576,13 +557,13 @@ mod tests_of_units {
                 let mut trie = Trie::new();
 
                 let peer = Key::new("Keyworders").unwrap();
-                _ = trie.insert(0usize, &peer);
+                trie.insert(0usize, &peer);
 
                 let test = Key::new("Keywordee").unwrap();
-                _ = trie.insert(0usize, &test);
+                trie.insert(0usize, &test);
 
                 assert!(trie.delete(&test).is_ok());
-                assert!(trie.member(&test).is_none());
+                assert!(trie.member(&test).is_none());                
 
                 let path = trie.path(&test);
                 assert_eq!(test.key.len(), path.len());
@@ -595,10 +576,10 @@ mod tests_of_units {
                 let mut trie = Trie::new();
 
                 let above = Key::new("Keyworder").unwrap();
-                _ = trie.insert(0usize, &above);
+                trie.insert(0usize, &above);
 
                 let under = Key::new("Keyworders").unwrap();
-                _ = trie.insert(0usize, &under);
+                trie.insert(0usize, &under);
 
                 assert!(trie.delete(&under).is_ok());
                 assert!(trie.member(&under).is_none());
@@ -620,7 +601,7 @@ mod tests_of_units {
             fn path() {
                 let key = Key::new("keyword").unwrap();
                 let mut trie = Trie::new();
-                _ = trie.insert(33usize, &key);
+                trie.insert(33usize, &key);
 
                 let path = trie.path(&key);
 

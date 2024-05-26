@@ -67,17 +67,17 @@ const ALPHABET_LEN: usize = 26;
 impl<T> Trie<T> {
     pub fn new() -> Trie<T> {
         Trie {
-            root: Node::empty(),
+            root: Node {
+                links: Some(Links::with_capacity(ALPHABET_LEN)),
+                entry: None,
+            },
         }
     }
 
     pub fn insert(&mut self, entry: T, key: &Key) {
         let key = &*key;
         let last_node_ix = key.len() - 1;
-        let mut links = self
-            .root
-            .links
-            .get_or_insert(Links::with_capacity(ALPHABET_LEN));
+        let mut links = self.root.links.as_mut().unwrap();
 
         let mut erator = key.chars().enumerate();
 
@@ -133,7 +133,8 @@ impl<T> Trie<T> {
             let n_links = n_mut.links.as_mut().unwrap();
             _ = n_links.remove(&subnode_key);
 
-            if n_links.len() == 0 {
+            let c = *c;
+            if n_links.len() == 0 && c != NULL {
                 n_mut.links = None;
             } else {
                 return Ok(());
@@ -143,7 +144,7 @@ impl<T> Trie<T> {
                 return Ok(());
             }
 
-            subnode_key = *c;
+            subnode_key = c;
         }
 
         return Ok(());
@@ -340,17 +341,25 @@ mod tests_of_units {
     }
 
     mod trie {
-        use crate::{Node, Trie};
+        use crate::{Trie, ALPHABET_LEN};
 
         #[test]
         fn new() {
             let trie = Trie::<usize>::new();
 
-            assert_eq!(Node::empty(), trie.root);
+            let root = trie.root;
+            assert!(!root.entry());
+
+            let links = &root.links;
+            assert!(links.is_some());
+
+            let links = links.as_ref().unwrap();
+            assert!(ALPHABET_LEN <= links.capacity());
+            assert_eq!(0, links.len());
         }
 
         mod insert {
-            use crate::{Key, Trie, ALPHABET_LEN};
+            use crate::{Key, Trie};
 
             #[test]
             fn basic_test() {
@@ -363,8 +372,6 @@ mod tests_of_units {
                 let last_node_ix = KEY.len() - 1;
 
                 let mut links = trie.root.links.as_ref().unwrap();
-
-                assert!(ALPHABET_LEN <= links.capacity());
 
                 for (ix, c) in KEY.chars().enumerate() {
                     let node = &links.get(&c);
@@ -467,7 +474,7 @@ mod tests_of_units {
             }
 
             #[test]
-            fn basic_test() {
+            fn only_root_node_remains() {
                 let key = Key::new("Keyword").unwrap();
                 let mut trie = Trie::new();
                 trie.insert(0usize, &key);
@@ -475,7 +482,8 @@ mod tests_of_units {
                 assert!(trie.delete(&key).is_ok());
                 assert!(trie.member(&key).is_none());
                 let links = trie.root.links;
-                assert!(links.is_none());
+                assert!(links.is_some());
+                assert_eq!(0, links.unwrap().len());
             }
 
             #[test]

@@ -318,18 +318,20 @@ mod tests_of_units {
 
             let mut distinctive = undistinctive.clone();
             distinctive.entry = Some(0);
+            distinctive.value = 'b';
 
             let mut path = vec![&undistinctive; 3];
             path.push(&distinctive);
 
             let key = Key {
-                key: String::from("aaaa"),
+                key: String::from("aaab"),
             };
 
             let el = entry_letter(&path, &key);
             assert!(el.is_some());
             let el = el.unwrap();
             assert!(el.entry());
+            assert_eq!('b', el.value);
         }
     }
 
@@ -430,10 +432,8 @@ mod tests_of_units {
 
             #[test]
             fn existing_path_insert() {
-                const NEW: &str = "touch";
-
-                let existing = Key::new(&"touchstone").unwrap();
-                let new = Key::new(&NEW).unwrap();
+                let existing = Key::new("touchstone").unwrap();
+                let new = Key::new("touch").unwrap();
 
                 let mut trie = Trie::new();
                 trie.insert(3usize, &existing);
@@ -445,8 +445,7 @@ mod tests_of_units {
 
             #[test]
             fn overwrite() {
-                const KEY: &str = "touchstone";
-                let key = Key::new(&KEY).unwrap();
+                let key = Key::new("touchstone").unwrap();
 
                 let mut trie = Trie::new();
                 trie.insert(3usize, &key);
@@ -480,8 +479,8 @@ mod tests_of_units {
                 trie.insert(0usize, &key);
 
                 for k in ["Key", "Opener"] {
-                    let bad_key = Key::new(k).unwrap();
-                    let member = trie.member(&bad_key);
+                    let key = Key::new(k).unwrap();
+                    let member = trie.member(&key);
                     assert!(member.is_none());
                 }
             }
@@ -546,7 +545,7 @@ mod tests_of_units {
                 trie.insert(0usize, &test);
 
                 assert!(trie.delete(&test).is_ok());
-                assert!(trie.member(&test).is_none());                
+                assert!(trie.member(&test).is_none());
 
                 let path = trie.path(&test);
                 assert_eq!(test.key.len(), path.len());
@@ -563,7 +562,7 @@ mod tests_of_units {
                 trie.insert(0usize, &test);
 
                 assert!(trie.delete(&test).is_ok());
-                assert!(trie.member(&test).is_none());                
+                assert!(trie.member(&test).is_none());
 
                 let path = trie.path(&test);
                 assert_eq!(test.key.len(), path.len());

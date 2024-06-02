@@ -3,6 +3,7 @@ use std::collections::hash_map::HashMap;
 type Links<T> = HashMap<char, Node<T>>;
 type Path<'a, T> = Vec<PathNode<'a, T>>;
 type PathNode<'a, T> = (char, &'a Node<T>);
+type Key = str;
 
 fn entry_path_node<'a, T>(path: &Path<'a, T>, key: &Key) -> Option<PathNode<'a, T>> {
     let key_len = key.len();
@@ -18,57 +19,16 @@ fn entry_path_node<'a, T>(path: &Path<'a, T>, key: &Key) -> Option<PathNode<'a, 
     }
 }
 
-pub struct Key {
-    key: String,
-}
-
-impl Key {
-    pub fn new(s: &str) -> Result<Key, KeyError> {
-        if s.len() == 0 {
-            return Err(KeyError::KeyWithInvalidLength);
-        }
-
-        let mut key = String::with_capacity(s.len());
-        for mut c in s.chars() {
-            if c.is_ascii_alphabetic() {
-                if c.is_ascii_uppercase() {
-                    c.make_ascii_lowercase();
-                }
-
-                key.push(c);
-            } else {
-                return Err(KeyError::KeyWithInvalidChars);
-            };
-        }
-
-        Ok(Key { key })
-    }
-}
-
-impl Deref for Key {
-    type Target = str;
-    fn deref(&self) -> &Self::Target {
-        &self.key
-    }
-}
-
-#[derive(Debug, PartialEq)]
-pub enum KeyError {
-    KeyWithInvalidChars,
-    KeyWithInvalidLength,
-}
-
 pub struct Trie<T> {
     root: Node<T>,
 }
 
 const NULL: char = '\0';
-const ALPHABET_LEN: usize = 26;
 impl<T> Trie<T> {
     pub fn new() -> Trie<T> {
         Trie {
             root: Node {
-                links: Some(Links::with_capacity(ALPHABET_LEN)),
+                links: Some(Links::new()),
                 entry: None,
             },
         }
@@ -206,7 +166,6 @@ impl<T> Node<T> {
 }
 
 use std::fmt::{Debug, Formatter};
-use std::ops::Deref;
 
 impl<T> Debug for Node<T>
 where
@@ -227,24 +186,13 @@ where
 #[cfg(test)]
 mod tests_of_units {
 
-    fn unsupported_chars() -> [u8; 4] {
-        #[rustfmt::skip] let ucs =
-        [
-            'a' as u8 -1, 'z' as u8 +1,
-            'A' as u8 -1, 'Z' as u8 +1,
-        ];
-        ucs
-    }
-
     mod entry_path_node {
-        use crate::{entry_path_node, Key, Node, NULL};
+        use crate::{entry_path_node, Node, NULL};
 
-        fn replacement_key(n: usize) -> Key {
+        fn replacement_key(n: usize) -> String {
             const REPLACEMENT: char = '\u{001A}';
 
-            Key {
-                key: REPLACEMENT.to_string().repeat(n),
-            }
+            REPLACEMENT.to_string().repeat(n)
         }
 
         /// Longer key means it is not traced by path.
@@ -290,58 +238,8 @@ mod tests_of_units {
         }
     }
 
-    mod key {
-
-        use super::unsupported_chars;
-        use crate::{Key, KeyError, ALPHABET_LEN};
-
-        #[test]
-        fn zero_len() {
-            let key = Key::new("");
-
-            assert!(key.is_err());
-            assert_eq!(KeyError::KeyWithInvalidLength, key.err().unwrap());
-        }
-
-        #[test]
-        fn invalid_str() {
-            let ucs = unsupported_chars();
-
-            let mut s = String::new();
-            for c in ucs {
-                s.push(c as char);
-                let key = Key::new(&s);
-                assert!(key.is_err());
-                assert_eq!(KeyError::KeyWithInvalidChars, key.err().unwrap());
-                s.clear();
-            }
-        }
-
-        #[test]
-        fn valid_str() {
-            let mut s = String::with_capacity(ALPHABET_LEN * 2);
-            for c in ('a'..='z').zip('A'..='Z') {
-                s.push(c.0);
-                s.push(c.1);
-            }
-
-            let key = Key::new(&s);
-            assert!(key.is_ok());
-
-            let proof = "aabbccddeeffgghhiijjkkllmmnnooppqqrrssttuuvvwwxxyyzz";
-
-            assert_eq!(proof, key.unwrap().key);
-        }
-
-        #[test]
-        fn deref() {
-            let key = Key::new("rstuvwxyz").unwrap();
-            assert_eq!(key.key, &*key);
-        }
-    }
-
     mod trie {
-        use crate::{Trie, ALPHABET_LEN};
+        use crate::Trie;
 
         #[test]
         fn new() {
@@ -354,20 +252,18 @@ mod tests_of_units {
             assert!(links.is_some());
 
             let links = links.as_ref().unwrap();
-            assert!(ALPHABET_LEN <= links.capacity());
             assert_eq!(0, links.len());
         }
 
         mod insert {
-            use crate::{Key, Trie};
+            use crate::Trie;
 
             #[test]
             fn basic_test() {
                 const KEY: &str = "touchstone";
-                let key = Key::new(&KEY).unwrap();
 
                 let mut trie = Trie::new();
-                trie.insert(3usize, &key);
+                trie.insert(3usize, KEY);
 
                 let last_node_ix = KEY.len() - 1;
 
@@ -396,42 +292,41 @@ mod tests_of_units {
 
             #[test]
             fn existing_path_insert() {
-                let existing = Key::new("touchstone").unwrap();
-                let new = Key::new("touch").unwrap();
+                const EXISTING: &str = "touchstone";
+                const NEW: &str = "touch";
 
                 let mut trie = Trie::new();
-                trie.insert(3usize, &existing);
-                trie.insert(4usize, &new);
+                trie.insert(3usize, EXISTING);
+                trie.insert(4usize, NEW);
 
-                assert!(trie.member(&existing).is_some());
-                assert!(trie.member(&new).is_some());
+                assert!(trie.member(EXISTING).is_some());
+                assert!(trie.member(NEW).is_some());
             }
         }
 
         mod member {
 
-            use crate::{Key, Trie};
+            use crate::Trie;
 
             #[test]
             fn member() {
-                let key = Key::new("Keyword").unwrap();
+                const KEY: &str = "Keyword";
                 let mut trie = Trie::new();
-                trie.insert(27usize, &key);
+                trie.insert(27usize, KEY);
 
-                let member = trie.member(&key);
+                let member = trie.member(KEY);
                 assert!(member.is_some());
                 assert_eq!(27, *member.unwrap());
             }
 
             #[test]
             fn not_member() {
-                let key = Key::new("Keyword").unwrap();
+                const KEY: &str = "Keyword";
                 let mut trie = Trie::new();
-                trie.insert(0usize, &key);
+                trie.insert(0usize, KEY);
 
-                for k in ["Key", "Opener"] {
-                    let key = Key::new(k).unwrap();
-                    let member = trie.member(&key);
+                for key in ["Key", "Opener"] {
+                    let member = trie.member(key);
                     assert!(member.is_none());
                 }
             }
@@ -442,19 +337,18 @@ mod tests_of_units {
         /// in path to another entry. Path len varies 0…m.        
         mod delete {
 
-            use crate::{Key, Trie};
+            use crate::Trie;
 
             #[test]
             fn not_member() {
-                let key = Key::new("Keyword").unwrap();
+                const KEY: &str = "Keyword";
                 let mut trie = Trie::new();
-                trie.insert(0usize, &key);
+                trie.insert(0usize, KEY);
 
-                for k in ["Key", "Opener"] {
-                    let bad_key = Key::new(k).unwrap();
-                    let err = trie.delete(&bad_key);
+                for bad_key in ["Key", "Opener"] {
+                    let err = trie.delete(bad_key);
                     assert!(err.is_err());
-                    assert!(trie.member(&key).is_some());
+                    assert!(trie.member(KEY).is_some());
                 }
             }
 
@@ -462,25 +356,25 @@ mod tests_of_units {
             fn inner_entry() {
                 let mut trie = Trie::new();
 
-                let outer = Key::new("Keyword").unwrap();
-                trie.insert(0usize, &outer);
+                const OUTER: &str = "Keyword";
+                trie.insert(0usize, OUTER);
 
-                let inner = Key::new("Key").unwrap();
-                trie.insert(0usize, &inner);
+                const INNER: &str = "Key";
+                trie.insert(0usize, INNER);
 
-                assert!(trie.delete(&inner).is_ok());
-                assert!(trie.member(&inner).is_none());
-                assert!(trie.member(&outer).is_some());
+                assert!(trie.delete(INNER).is_ok());
+                assert!(trie.member(INNER).is_none());
+                assert!(trie.member(OUTER).is_some());
             }
 
             #[test]
             fn only_root_node_remains() {
-                let key = Key::new("Keyword").unwrap();
+                const KEY: &str = "Keyword";
                 let mut trie = Trie::new();
-                trie.insert(0usize, &key);
+                trie.insert(0usize, KEY);
 
-                assert!(trie.delete(&key).is_ok());
-                assert!(trie.member(&key).is_none());
+                assert!(trie.delete(KEY).is_ok());
+                assert!(trie.member(KEY).is_none());
                 let links = trie.root.links;
                 assert!(links.is_some());
                 assert_eq!(0, links.unwrap().len());
@@ -488,37 +382,37 @@ mod tests_of_units {
 
             #[test]
             fn node_composing_path() {
-                let knitwork = Key::new("Dissimilar").unwrap();
-                let keyword = Key::new("Keyword").unwrap();
+                const DISSIMILAR: &str = "Dissimilar";
+                const KEYWORD: &str = "Keyword";
                 let mut trie = Trie::new();
-                trie.insert(0usize, &knitwork);
-                trie.insert(0usize, &keyword);
+                trie.insert(0usize, DISSIMILAR);
+                trie.insert(0usize, KEYWORD);
 
-                assert!(trie.delete(&keyword).is_ok());
-                assert!(trie.member(&keyword).is_none());
-                assert!(trie.member(&knitwork).is_some());
+                assert!(trie.delete(KEYWORD).is_ok());
+                assert!(trie.member(KEYWORD).is_none());
+                assert!(trie.member(DISSIMILAR).is_some());
             }
 
             #[test]
             fn node_being_entry() {
-                let key1 = Key::new("Keyword").unwrap();
-                let key2 = Key::new("K").unwrap();
+                const KEY1: &str = "Keyword";
+                const KEY2: &str = "K";
                 let mut trie = Trie::new();
-                trie.insert(0usize, &key1);
-                trie.insert(0usize, &key2);
+                trie.insert(0usize, KEY1);
+                trie.insert(0usize, KEY2);
 
-                assert!(trie.delete(&key1).is_ok());
-                assert!(trie.member(&key1).is_none());
-                assert!(trie.member(&key2).is_some());
+                assert!(trie.delete(KEY1).is_ok());
+                assert!(trie.member(KEY1).is_none());
+                assert!(trie.member(KEY2).is_some());
 
-                let k = trie.root.links.as_ref().unwrap().get(&'k');
+                let k = trie.root.links.as_ref().unwrap().get(&'K');
                 assert!(!k.unwrap().links());
             }
         }
 
         mod path {
 
-            use crate::{Key, Trie, NULL};
+            use crate::{Trie, NULL};
 
             #[test]
             fn path() {
@@ -526,15 +420,13 @@ mod tests_of_units {
 
                 let kvs = [("k", 12), ("keyw", 22), ("keyword", 45)];
                 for (k, v) in kvs {
-                    let key = Key::new(k).unwrap();
-                    trie.insert(v, &key);
+                    trie.insert(v, k);
                 }
 
                 let keyword = kvs[2].0;
                 let proof = format!("{}{}", NULL, keyword);
-                let key = Key::new(keyword).unwrap();
 
-                let path = trie.path(&key);
+                let path = trie.path(keyword);
                 assert_eq!(proof.len(), path.len());
 
                 let mut ix = 0;
@@ -555,12 +447,12 @@ mod tests_of_units {
             fn no_branch() {
                 let mut trie = Trie::<usize>::new();
 
-                let keyboard = Key::new("keyboard").unwrap();
-                let keyword = Key::new("keyword").unwrap();
-                trie.insert(0usize, &keyword);
+                const KEYBOARD: &str = "Keyboard";
+                const KEYWORD: &str = "Keyword";
+                trie.insert(0usize, KEYWORD);
 
-                let path = trie.path(&keyboard);
-                let proof = format!("{}key", NULL);
+                let path = trie.path(KEYBOARD);
+                let proof = format!("{}Key", NULL);
                 assert_eq!(proof.len(), path.len());
 
                 let mut ix = 0;
@@ -573,10 +465,10 @@ mod tests_of_units {
 
             #[test]
             fn no_branches() {
-                let key = Key::new("Key").unwrap();
+                const KEY: &str = "Key";
                 let trie = Trie::<usize>::new();
 
-                let path = trie.path(&key);
+                let path = trie.path(KEY);
                 assert_eq!(1, path.len());
                 assert_eq!(NULL, path[0].0);
             }

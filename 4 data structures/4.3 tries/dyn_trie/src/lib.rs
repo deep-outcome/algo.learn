@@ -11,10 +11,10 @@ fn entry_path_node<'a, T>(path: &Path<'a, T>, key: &Key) -> Option<PathNode<'a, 
         None
     } else {
         let epn = path[key_len];
-        if epn.1.entry.is_none() {
-            None
-        } else {
+        if epn.1.entry() {
             Some(epn)
+        } else {
+            None
         }
     }
 }
@@ -169,9 +169,7 @@ where
     T: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let links = &self.links;
-
-        let links = if links.is_some() { "Some" } else { "None" };
+        let links = if self.links() { "Some" } else { "None" };
 
         f.write_fmt(format_args!(
             "Node {{\n  links: {:?}\n  entry: {:?}\n}}",

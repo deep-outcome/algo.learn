@@ -22,10 +22,10 @@ fn entry_letter<'a, T>(path: &Path<'a, T>, key: &Key) -> Option<&'a Letter<T>> {
         None
     } else {
         let el = path[el_ix];
-        if el.entry.is_none() {
-            None
-        } else {
+        if el.entry() {
             Some(el)
+        } else {
+            None
         }
     }
 }
@@ -233,13 +233,7 @@ where
     T: Debug,
 {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let alphabet = &self.alphabet;
-
-        let alphabet = if alphabet.is_some() {
-            "Alphabet"
-        } else {
-            "None"
-        };
+        let alphabet = if self.alphabet() { "Alphabet" } else { "None" };
 
         f.write_fmt(format_args!(
             "Letter {{\n  value: {:?}\n  alphabet: {:?}\n  entry: {:?}\n}}",

@@ -27,17 +27,14 @@ const NULL: char = '\0';
 impl<T> Trie<T> {
     pub fn new() -> Trie<T> {
         Trie {
-            root: Node {
-                links: Some(Links::new()),
-                entry: None,
-            },
+            root: Node::<T>::empty(),
         }
     }
 
     pub fn insert(&mut self, entry: T, key: &Key) {
         let key = &*key;
         let last_node_ix = key.len() - 1;
-        let mut links = self.root.links.as_mut().unwrap();
+        let mut links = self.root.links.get_or_insert_with(|| Links::new());
 
         let mut erator = key.chars().enumerate();
 
@@ -94,7 +91,7 @@ impl<T> Trie<T> {
             _ = n_links.remove(&subnode_key);
 
             let c = *c;
-            if n_links.len() == 0 && c != NULL {
+            if n_links.len() == 0 {
                 n_mut.links = None;
             } else {
                 return Ok(());
@@ -249,10 +246,7 @@ mod tests_of_units {
             assert!(!root.entry());
 
             let links = &root.links;
-            assert!(links.is_some());
-
-            let links = links.as_ref().unwrap();
-            assert_eq!(0, links.len());
+            assert!(links.is_none());
         }
 
         mod insert {
@@ -368,7 +362,7 @@ mod tests_of_units {
             }
 
             #[test]
-            fn only_root_node_remains() {
+            fn links_removal() {
                 const KEY: &str = "Keyword";
                 let mut trie = Trie::new();
                 trie.insert(0usize, KEY);
@@ -376,8 +370,7 @@ mod tests_of_units {
                 assert!(trie.delete(KEY).is_ok());
                 assert!(trie.member(KEY).is_none());
                 let links = trie.root.links;
-                assert!(links.is_some());
-                assert_eq!(0, links.unwrap().len());
+                assert!(links.is_none());
             }
 
             #[test]

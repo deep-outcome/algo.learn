@@ -32,27 +32,13 @@ impl<T> Trie<T> {
     }
 
     pub fn insert(&mut self, entry: T, key: &Key) {
-        let key = &*key;
-        let last_node_ix = key.len() - 1;
-        let mut links = self.root.links.get_or_insert_with(|| Links::new());
-
-        let mut erator = key.chars().enumerate();
-
-        loop {
-            let (it_ix, c) = erator.next().unwrap();
-
-            let node = links.entry(c).or_insert(Node::<T>::empty());
-            if it_ix < last_node_ix {
-                if !node.links() {
-                    node.links = Some(Links::new())
-                }
-            } else {
-                node.entry = Some(entry);
-                break;
-            }
-
-            links = node.links.as_mut().unwrap();
+        let mut node = &mut self.root;
+        for c in key.chars() {
+            let links = node.links.get_or_insert_with(|| Links::new());
+            node = links.entry(c).or_insert(Node::<T>::empty());
         }
+
+        node.entry = Some(entry);
     }
 
     pub fn member(&self, key: &Key) -> Option<&T> {
@@ -114,8 +100,6 @@ impl<T> Trie<T> {
     }
 
     fn path(&self, key: &Key) -> Vec<PathNode<'_, T>> {
-        let key = &*key;
-
         let root = &self.root;
         let mut links = root.links.as_ref();
 

@@ -123,7 +123,7 @@ impl<T> Trie<T> {
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[cfg_attr(test, derive(PartialEq, Clone))]
 struct Node<T> {
     links: Option<Links<T>>,
     entry: Option<T>,
@@ -146,8 +146,10 @@ impl<T> Node<T> {
     }
 }
 
+#[cfg(test)]
 use std::fmt::{Debug, Formatter};
 
+#[cfg(test)]
 impl<T> Debug for Node<T>
 where
     T: Debug,

@@ -5,10 +5,16 @@ const ALPHABET_LEN: usize = 26;
 
 fn alphabet<T>() -> Alphabet<T> {
     let mut vec = Vec::with_capacity(ALPHABET_LEN);
+
+    #[cfg(test)]
     let mut c = 'a' as u8;
     for sc in vec.spare_capacity_mut() {
-        sc.write(Letter::new(c as char));
-        c = c + 1;
+        let mut _letter = sc.write(Letter::new());
+        #[cfg(test)]
+        {
+            _letter.value = c as char;
+            c = c + 1;
+        }
     }
 
     unsafe { vec.set_len(ALPHABET_LEN) };
@@ -61,7 +67,7 @@ impl Key {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[cfg_attr(test, derive(Debug, PartialEq))]
 pub enum KeyError {
     KeyWithInvalidChars,
     KeyWithInvalidLength,
@@ -201,8 +207,9 @@ impl<T> Trie<T> {
     }
 }
 
-#[derive(PartialEq, Clone)]
+#[cfg_attr(test, derive(PartialEq, Clone))]
 struct Letter<T> {
+    #[cfg(test)]
     value: char,
     alphabet: Option<Alphabet<T>>,
     entry: Option<T>,
@@ -217,17 +224,20 @@ impl<T> Letter<T> {
         self.alphabet.is_some()
     }
 
-    fn new(c: char) -> Self {
+    fn new() -> Self {
         Letter {
-            value: c,
+            #[cfg(test)]
+            value: '🫀',
             alphabet: None,
             entry: None,
         }
     }
 }
 
+#[cfg(test)]
 use std::fmt::{Debug, Formatter};
 
+#[cfg(test)]
 impl<T> Debug for Letter<T>
 where
     T: Debug,
@@ -482,7 +492,7 @@ mod tests_of_units {
 
         /// Letter in path to entry being deleted
         /// cannot be deleted if and only if participates
-        /// in path to another entry. Path len varies 0…m.        
+        /// in path to another entry. Path len varies 0…m.
         mod delete {
 
             use crate::{ix, Key, Trie};
@@ -628,7 +638,7 @@ mod tests_of_units {
 
         #[test]
         fn entry() {
-            let mut letter = Letter::<usize>::new('🫀');
+            let mut letter = Letter::<usize>::new();
 
             assert!(!letter.entry());
             letter.entry = Some(1);
@@ -637,7 +647,7 @@ mod tests_of_units {
 
         #[test]
         fn alphabet() {
-            let mut letter = Letter::<usize>::new('🫀');
+            let mut letter = Letter::<usize>::new();
 
             assert!(!letter.alphabet());
             letter.alphabet = Some(alphabet_fn());
@@ -646,10 +656,9 @@ mod tests_of_units {
 
         #[test]
         fn new() {
-            let c = '🫀';
-            let letter = Letter::<usize>::new(c);
+            let letter = Letter::<usize>::new();
 
-            assert_eq!(c, letter.value);
+            assert_eq!('🫀', letter.value);
             assert!(letter.alphabet.is_none());
             assert!(letter.entry.is_none());
         }

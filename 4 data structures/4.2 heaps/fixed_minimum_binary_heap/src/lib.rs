@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 pub const MAX_LEVELS: usize = 25;
 
 pub struct FixMinBinHeap<T>

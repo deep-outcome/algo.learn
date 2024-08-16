@@ -1,6 +1,4 @@
-#![allow(dead_code)]
-
-struct FixedSizeQueue<T, const I: usize> {
+pub struct FixedSizeQueue<T, const I: usize> {
     arr: [T; I],
     rix: usize,
     wix: usize,
@@ -115,7 +113,7 @@ mod tests_of_units {
         let deq = queue.deque();
         assert!(deq.is_some());
         assert_eq!(1, queue.rix);
-        assert_eq!(0, queue.count);        
+        assert_eq!(0, queue.count);
     }
 
     #[test]

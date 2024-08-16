@@ -78,7 +78,6 @@ where
     match form {
         SortForm::Maximal => PartialOrd::<T>::gt,
         SortForm::Minimal => PartialOrd::<T>::lt,
-        _ => panic!("Disallowed form discriminant: {}", form as isize),
     }
 }
 

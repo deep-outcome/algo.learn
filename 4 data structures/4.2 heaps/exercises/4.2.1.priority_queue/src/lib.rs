@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::cmp::{Ord, Ordering};
 
 pub const MAX_LEVELS: usize = 25;

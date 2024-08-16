@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 pub const MAX_LEVELS: usize = 25;
 
 #[derive(PartialEq, Debug, Clone)]
@@ -23,7 +21,7 @@ where
     T: Ord + Clone + Default,
 {
     /// Final capacity is aligned to maximal leaf capacity.
-    fn from_slice(slice: &[T], form: FixBinHeapForm) -> FixBinHeap<T> {
+    pub fn from_slice(slice: &[T], form: FixBinHeapForm) -> FixBinHeap<T> {
         let len = slice.len();
 
         let limit = (len as f64).log2();
@@ -52,7 +50,7 @@ where
 
     /// Note that heap satiation cannot be guaranteed.
     /// Heap will support `Vec<T>` capacity nodes.
-    fn from_vec(vec: Vec<T>, form: FixBinHeapForm) -> FixBinHeap<T> {
+    pub fn from_vec(vec: Vec<T>, form: FixBinHeapForm) -> FixBinHeap<T> {
         let cap = vec.capacity();
         let len = vec.len();
 
@@ -293,6 +291,9 @@ where
         (des_ix - 1) / 2
     }
 }
+
+// cargo test --features simplified-del
+// cargo test --features complex-del
 
 #[cfg(test)]
 mod tests_of_units {

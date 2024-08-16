@@ -2,7 +2,7 @@
 
 use std::vec::Vec;
 
-fn union<T>(A: &[T], B: &[T]) -> Vec<T>
+pub fn union<T>(A: &[T], B: &[T]) -> Vec<T>
 where
     T: PartialOrd + Copy,
 {
@@ -29,7 +29,7 @@ where
     output
 }
 
-fn intersection<T>(A: &[T], B: &[T]) -> Vec<T>
+pub fn intersection<T>(A: &[T], B: &[T]) -> Vec<T>
 where
     T: PartialOrd + Copy,
 {

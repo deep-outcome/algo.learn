@@ -1,5 +1,3 @@
-#[no_std]
-
 type Alphabet<T> = Box<[Letter<T>]>;
 type Path<'a, T> = Vec<&'a Letter<T>>;
 

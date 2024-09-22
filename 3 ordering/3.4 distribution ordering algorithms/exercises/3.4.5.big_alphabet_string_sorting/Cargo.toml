@@ -1,5 +1,5 @@
 [package]
-name = "string_sorting"
+name = "big_alphabet_string_sorting"
 version = "0.1.0"
 edition = "2021"
 

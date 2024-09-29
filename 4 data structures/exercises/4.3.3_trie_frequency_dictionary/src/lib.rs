@@ -79,6 +79,7 @@ fn ix(c: char) -> usize {
     }
 }
 
+// TC: Θ(q · alphabet size) ⇒ Ο(q), q = nodes count
 fn exc<'a, 'b>(ab: &'b mut Alphabet<'a>, fd: &mut FrequencyDictionary<'a>) {
     for letter in ab.iter_mut() {
         if let Some(e) = letter.entry.take() {
@@ -92,6 +93,8 @@ fn exc<'a, 'b>(ab: &'b mut Alphabet<'a>, fd: &mut FrequencyDictionary<'a>) {
     }
 }
 
+// TC: Θ(l), l = entry len
+// SC: Θ(q · alphabet size) ⇒ Ο(q), q = unique nodes count
 fn ins<'a>(mut ab: &mut Alphabet<'a>, entry: &'a str) {
     let entry_len = entry.len();
 
@@ -143,7 +146,12 @@ impl<'a> FrequencyCounter<'a> {
 
     /// Suports only A-Za-z `char`s.
     ///
-    /// If condition was not upheld, method would unluckily panic.    
+    /// If condition was not upheld, method would unluckily panic.
+    ///
+    /// Base TC: Θ(s) where s is sum of all lengths in `strs`.
+    /// Base SC: Θ(q) where q is number of unique nodes, i.e. letters in respective branches.
+    ///
+    /// Final ordering is done via `Vec` `sort_unstable_by` which incures further complexity.
     pub fn count(&'a mut self, strs: &mut [&'a str]) -> FrequencyDictionary {
         let root = &mut self.root;
 

@@ -459,7 +459,7 @@ mod tests_of_units {
         }
     }
 
-    mod trie {
+    mod trie_sorter {
         use crate::{TrieSorter, alphabet};
 
         #[test]

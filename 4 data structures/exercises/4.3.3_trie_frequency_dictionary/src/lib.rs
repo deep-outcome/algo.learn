@@ -79,7 +79,7 @@ fn ix(c: char) -> usize {
     }
 }
 
-// TC: Θ(q · alphabet size) ⇒ Ο(q), q = nodes count
+// TC: Θ(q · alphabet size) ⇒ Θ(q), q = nodes count
 fn exc<'a, 'b>(ab: &'b mut Alphabet<'a>, fd: &mut FrequencyDictionary<'a>) {
     for letter in ab.iter_mut() {
         if let Some(e) = letter.entry.take() {
@@ -94,7 +94,7 @@ fn exc<'a, 'b>(ab: &'b mut Alphabet<'a>, fd: &mut FrequencyDictionary<'a>) {
 }
 
 // TC: Θ(l), l = entry len
-// SC: Θ(q · alphabet size) ⇒ Ο(q), q = unique nodes count
+// SC: Θ(q · alphabet size) ⇒ Θ(q), q = unique nodes count
 fn ins<'a>(mut ab: &mut Alphabet<'a>, entry: &'a str) {
     let entry_len = entry.len();
 

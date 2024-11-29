@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 fn radixsort(nums: &mut [u32], mut cycls: usize) {
     let nums_len = nums.len();
     assert!(cycls > 0, "Cannot sort by zero digit position.");

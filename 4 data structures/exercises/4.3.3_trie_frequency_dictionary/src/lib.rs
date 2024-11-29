@@ -49,7 +49,7 @@ fn alphabet<'a>() -> Alphabet<'a> {
     #[cfg(test)]
     let mut c = 'A' as u8;
 
-    for sc in ab.spare_capacity_mut() {
+    for sc in ab.spare_capacity_mut()[..ALPHABET_LEN].iter_mut() {
         let mut _letter = sc.write(Letter::new());
 
         #[cfg(test)]
@@ -152,7 +152,7 @@ impl<'a> FrequencyCounter<'a> {
     /// Base SC: Θ(q) where q is number of unique nodes, i.e. letters in respective branches.
     ///
     /// Final ordering is done via `Vec` `sort_unstable_by` which incures further complexity.
-    pub fn count(&'a mut self, strs: &mut [&'a str]) -> FrequencyDictionary {
+    pub fn count(&'a mut self, strs: &mut [&'a str]) -> FrequencyDictionary<'a> {
         let root = &mut self.root;
 
         for s in strs.iter() {

@@ -8,7 +8,7 @@ fn alphabet<T>() -> Alphabet<T> {
 
     #[cfg(test)]
     let mut c = 'a' as u8;
-    for sc in vec.spare_capacity_mut() {
+    for sc in vec.spare_capacity_mut()[..ALPHABET_LEN].iter_mut() {
         let mut _letter = sc.write(Letter::new());
         #[cfg(test)]
         {

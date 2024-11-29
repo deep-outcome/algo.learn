@@ -23,7 +23,7 @@ fn sort(fpoints: &mut [FPoint]) {
     let perms = 2usize.pow(24);
     let mut bucs = Vec::with_capacity(perms);
 
-    let sp_cp_mut = bucs.spare_capacity_mut();
+    let sp_cp_mut = &mut bucs.spare_capacity_mut()[..perms];
 
     // T: Θ(2²⁴)
     // S: Θ(2²⁴)

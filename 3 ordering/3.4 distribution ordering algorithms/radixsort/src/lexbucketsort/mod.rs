@@ -131,32 +131,32 @@ mod test {
 
     #[test]
     fn bucs_len_test() {
-        let mut nums = [8, 7, 6, 5 ,4 ,3, 2, 1, 0];
+        let mut nums = [8, 7, 6, 5, 4, 3, 2, 1, 0];
         let mut expectation = nums.clone();
         expectation.sort();
 
         _ = radixsort(&mut nums, 8, true);
         assert_eq!(expectation, nums);
     }
-    
-     #[test]
+
+    #[test]
     fn bucs_clear_test() {
-        let mut nums = [88, 77, 66, 55 ,44 ,33, 22, 11, 0];
+        let mut nums = [88, 77, 66, 55, 44, 33, 22, 11, 0];
         let mut expectation = nums.clone();
         expectation.sort();
 
         _ = radixsort(&mut nums, 88, true);
         assert_eq!(expectation, nums);
     }
-    
+
     #[test]
     fn stability_test() {
-        let mut nums = [81, 71, 61, 51];        
+        let mut nums = [81, 71, 61, 51];
 
         _ = radixsort(&mut nums, 1, true);
         assert_eq!([81, 71, 61, 51], nums);
     }
-    
+
     #[test]
     // this should sort by 1-digit key
     fn radixsort_correctly_sorts_different_digit_count_nums() {

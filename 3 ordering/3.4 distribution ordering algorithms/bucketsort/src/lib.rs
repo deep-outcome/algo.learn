@@ -15,7 +15,7 @@ mod bucketsort_via_ptr {
     }
 
     impl<'a> NonCopyStruct<'a> {
-        fn new(name: &'a str, order: u32) -> NonCopyStruct {
+        fn new(name: &'a str, order: u32) -> NonCopyStruct<'a> {
             NonCopyStruct { name, order }
         }
     }
@@ -87,7 +87,7 @@ mod bucketsort_by_val {
     }
 
     impl<'a> CopyStruct<'a> {
-        fn new(name: &'a str, order: u32) -> CopyStruct {
+        fn new(name: &'a str, order: u32) -> CopyStruct<'a> {
             CopyStruct { name, order }
         }
     }

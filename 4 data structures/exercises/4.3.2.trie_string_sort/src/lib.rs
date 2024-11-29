@@ -31,7 +31,7 @@ fn alphabet<'a>() -> Alphabet<'a> {
     #[cfg(test)]
     let mut c = 'A' as u8;
 
-    for sc in ab.spare_capacity_mut() {
+    for sc in ab.spare_capacity_mut()[..ALPHABET_LEN].iter_mut() {
         let mut _letter = sc.write(Letter::new());
 
         #[cfg(test)]

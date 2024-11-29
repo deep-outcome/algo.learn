@@ -19,14 +19,15 @@ use super::FPoint;
 
 #[allow(dead_code)]
 fn sort(fpoints: &mut [FPoint]) {
-    let mut exp_bucs = Vec::with_capacity(256);
+    let bucs = 256;
+    let mut exp_bucs = Vec::with_capacity(bucs);
 
-    for cp in exp_bucs.spare_capacity_mut() {
+    for cp in exp_bucs.spare_capacity_mut()[..bucs].iter_mut() {
         cp.write(Vec::<FPoint>::with_capacity(0));
     }
 
     unsafe {
-        exp_bucs.set_len(256);
+        exp_bucs.set_len(bucs);
     }
 
     for &f in fpoints.iter() {

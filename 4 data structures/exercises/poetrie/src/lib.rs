@@ -1,6 +1,6 @@
 //! Poetrie, poetic trie, is trie designated for finding rhymes for your verses.
 //!
-//! For given input it will find word with lengthiest common suffix for you.
+//! For given input and populated tree it will find word with lengthiest common suffix for you.
 // improvements:
 //      - return all words with x-length common suffix
 //      - allow to speficy expected min a max suffix match length
@@ -29,11 +29,14 @@ fn ext(l: &mut Links, buff: &mut String, o: &mut Vec<String>) {
     }
 }
 
-/// `& str` validated for usage with `Poetrie`.
+/// `&str` validated for usage with `Poetrie`.
 #[derive(Clone, PartialEq, Debug)]
 pub struct Entry<'a>(&'a str);
 
 impl<'a> Entry<'a> {
+    /// Constructor for `&str`.
+    ///
+    /// Return value is `None` for 0-length `str`.
     pub const fn new_from_str(entry: &'a str) -> Option<Self> {
         if entry.len() == 0 {
             None
@@ -52,6 +55,9 @@ impl<'a> Deref for Entry<'a> {
 }
 
 /// Poetrie, poetic retrieval tree implementation for finding common word suffixes.
+///
+/// Inputs are not validated, with exception for 0-lenght, thus is up to consumer code
+/// to populate tree with sensible values.
 pub struct Poetrie {
     root: Node,
     // backtrace buff
@@ -62,7 +68,7 @@ pub struct Poetrie {
 
 const NULL: char = '\0';
 impl Poetrie {
-    /// Ctor.
+    /// `Poetrie` constructor.
     pub const fn new() -> Poetrie {
         Poetrie {
             root: Node::empty(),
@@ -73,7 +79,7 @@ impl Poetrie {
 
     /// Inserts entry specified into tree.
     ///
-    /// Return value is `true` if `entry` was inserted into tree, `false` if was present already.
+    /// Return value is `true` if `entry` was inserted into tree, `false` if it was present already.
     pub fn ins(&mut self, entry: &Entry) -> bool {
         let mut node = &mut self.root;
         for c in entry.chars() {

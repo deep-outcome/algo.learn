@@ -5,6 +5,7 @@
 //      - return all words with x-length common suffix
 //      - allow to speficy expected min a max suffix match length
 //      - custom letter equalizer
+//      - use verbose method names
 use std::{collections::hash_map::HashMap, ops::Deref};
 
 mod uc;

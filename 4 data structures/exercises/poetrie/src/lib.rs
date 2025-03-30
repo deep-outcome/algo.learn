@@ -51,8 +51,8 @@ impl<'a> Deref for Entry<'a> {
     }
 }
 
-/// Potrie, poetic retrieval tree implementation for finding common word suffixes.
-pub struct Potrie {
+/// Poetrie, poetic retrieval tree implementation for finding common word suffixes.
+pub struct Poetrie {
     root: Node,
     // backtrace buff
     btr: UC<Vec<(char, *mut Node)>>,
@@ -61,10 +61,10 @@ pub struct Potrie {
 }
 
 const NULL: char = '\0';
-impl Potrie {
+impl Poetrie {
     /// Ctor.
-    pub const fn new() -> Potrie {
-        Potrie {
+    pub const fn new() -> Poetrie {
+        Poetrie {
             root: Node::empty(),
             btr: UC::new(Vec::new()),
             cnt: 0,
@@ -284,22 +284,22 @@ mod tests_of_units {
 
     mod ext {
 
-        use crate::{Entry, Potrie, ext};
+        use crate::{Entry, Poetrie, ext};
 
         #[test]
         fn basic_test() {
-            let mut trie = Potrie::new();
+            let mut poetrie = Poetrie::new();
 
             let a = &Entry("a");
             let z = &Entry("z");
 
-            _ = trie.ins(a);
-            _ = trie.ins(z);
+            _ = poetrie.ins(a);
+            _ = poetrie.ins(z);
 
             let mut buff = String::new();
             let mut test = Vec::new();
 
-            let links = unsafe { trie.root.links.as_mut().unwrap_unchecked() };
+            let links = unsafe { poetrie.root.links.as_mut().unwrap_unchecked() };
             ext(links, &mut buff, &mut test);
 
             let proof = vec![String::from("a"), String::from("z")];
@@ -308,13 +308,13 @@ mod tests_of_units {
 
             assert_eq!(proof, test);
 
-            assert_eq!(true, trie.en(a));
-            assert_eq!(true, trie.en(z));
+            assert_eq!(true, poetrie.en(a));
+            assert_eq!(true, poetrie.en(z));
         }
 
         #[test]
         fn nesting() {
-            let mut trie = Potrie::new();
+            let mut poetrie = Poetrie::new();
 
             let entries = vec![
                 String::from("a"),
@@ -328,13 +328,13 @@ mod tests_of_units {
             ];
 
             for e in entries.iter() {
-                _ = trie.ins(&Entry(e.as_str()));
+                _ = poetrie.ins(&Entry(e.as_str()));
             }
 
             let mut buff = String::new();
             let mut test = Vec::new();
 
-            let links = unsafe { trie.root.links.as_mut().unwrap_unchecked() };
+            let links = unsafe { poetrie.root.links.as_mut().unwrap_unchecked() };
             ext(links, &mut buff, &mut test);
 
             assert_eq!(entries.len(), test.len());
@@ -345,7 +345,7 @@ mod tests_of_units {
 
         #[test]
         fn in_depth_recursion() {
-            let mut trie = Potrie::new();
+            let mut poetrie = Poetrie::new();
 
             let paths = vec![
                 String::from("aa"),
@@ -360,13 +360,13 @@ mod tests_of_units {
             ];
 
             for p in paths.iter() {
-                _ = trie.ins(&Entry(p.as_str()));
+                _ = poetrie.ins(&Entry(p.as_str()));
             }
 
             let mut buff = String::new();
             let mut test = Vec::new();
 
-            let links = unsafe { trie.root.links.as_mut().unwrap_unchecked() };
+            let links = unsafe { poetrie.root.links.as_mut().unwrap_unchecked() };
             ext(links, &mut buff, &mut test);
 
             assert_eq!(paths.len(), test.len());
@@ -395,31 +395,31 @@ mod tests_of_units {
         }
     }
 
-    mod trie {
-        use crate::Potrie;
+    mod poetrie {
+        use crate::Poetrie;
 
         #[test]
         fn new() {
-            let trie = Potrie::new();
+            let poetrie = Poetrie::new();
 
-            let root = trie.root;
-            assert_eq!(false, root.entry);            
+            let root = poetrie.root;
+            assert_eq!(false, root.entry);
             assert_eq!(None, root.links);
-            assert_eq!(0, trie.cnt);
+            assert_eq!(0, poetrie.cnt);
         }
 
         mod ins {
-            use crate::{Entry, Potrie};
+            use crate::{Entry, Poetrie};
 
             #[test]
             fn basic_test() {
                 let entry = Entry("touchstone");
 
-                let mut trie = Potrie::new();
-                let res = trie.ins(&entry);
+                let mut poetrie = Poetrie::new();
+                let res = poetrie.ins(&entry);
                 assert_eq!(true, res);
 
-                let links = &trie.root.links.as_ref();
+                let links = &poetrie.root.links.as_ref();
                 assert_eq!(true, links.is_some());
                 let mut links = links.unwrap();
 
@@ -440,7 +440,7 @@ mod tests_of_units {
                     }
                 }
 
-                assert_eq!(1, trie.cnt);
+                assert_eq!(1, poetrie.cnt);
             }
 
             #[test]
@@ -448,30 +448,30 @@ mod tests_of_units {
                 let existing = &Entry("touchstone");
                 let new = &Entry("touch");
 
-                let mut trie = Potrie::new();
+                let mut poetrie = Poetrie::new();
 
-                let res = trie.ins(existing);
+                let res = poetrie.ins(existing);
                 assert_eq!(true, res);
-                assert_eq!(1, trie.cnt);
+                assert_eq!(1, poetrie.cnt);
 
-                let res = trie.ins(new);
+                let res = poetrie.ins(new);
                 assert_eq!(true, res);
-                assert_eq!(2, trie.cnt);
+                assert_eq!(2, poetrie.cnt);
 
-                assert_eq!(true, trie.en(existing));
-                assert_eq!(true, trie.en(new));
+                assert_eq!(true, poetrie.en(existing));
+                assert_eq!(true, poetrie.en(new));
             }
 
             #[test]
             fn singular_entry() {
                 let e = Entry("a");
 
-                let mut trie = Potrie::new();
-                let res = trie.ins(&e);
+                let mut poetrie = Poetrie::new();
+                let res = poetrie.ins(&e);
                 assert_eq!(true, res);
-                assert_eq!(1, trie.cnt);
+                assert_eq!(1, poetrie.cnt);
 
-                let links = trie.root.links;
+                let links = poetrie.root.links;
                 assert_eq!(true, links.is_some());
                 let links = links.unwrap();
                 let node = links.get(&'a');
@@ -483,16 +483,16 @@ mod tests_of_units {
             fn double_insert() {
                 let entry = &Entry("appealing delicacy");
 
-                let mut trie = Potrie::new();
-                let res = trie.ins(&entry);
+                let mut poetrie = Poetrie::new();
+                let res = poetrie.ins(&entry);
                 assert_eq!(true, res);
-                assert_eq!(1, trie.cnt);
+                assert_eq!(1, poetrie.cnt);
 
-                let res = trie.ins(&entry);
+                let res = poetrie.ins(&entry);
                 assert_eq!(false, res);
-                assert_eq!(1, trie.cnt);
+                assert_eq!(1, poetrie.cnt);
 
-                let links = &trie.root.links.as_ref();
+                let links = &poetrie.root.links.as_ref();
                 assert_eq!(true, links.is_some());
                 let mut links = links.unwrap();
 
@@ -515,51 +515,51 @@ mod tests_of_units {
 
         mod en {
 
-            use crate::{Entry, Potrie};
+            use crate::{Entry, Poetrie};
 
             #[test]
             fn member() {
                 let e = &Entry("Keyword");
-                let mut trie = Potrie::new();
-                _ = trie.ins(e);
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(e);
 
-                let res = trie.en(e);
+                let res = poetrie.en(e);
                 assert_eq!(true, res);
             }
 
             #[test]
             fn not_member() {
                 let e = &Entry("Keyword");
-                let mut trie = Potrie::new();
-                _ = trie.ins(e);
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(e);
 
                 for e in ["Key", "Opener"] {
                     let e = Entry(e);
-                    let res = trie.en(&e);
+                    let res = poetrie.en(&e);
                     assert_eq!(false, res);
                 }
             }
         }
 
         mod rem {
-            use crate::{Entry, Potrie};
+            use crate::{Entry, Poetrie};
 
             #[test]
             fn known_unknown() {
                 let known = &Entry("safe-hideaway");
                 let unknown = &Entry("grave-monition");
 
-                let mut trie = Potrie::new();
-                _ = trie.ins(known);
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(known);
 
-                assert_eq!(false, trie.rem(unknown));
-                assert_eq!(0, trie.btr.len());
-                assert_eq!(1, trie.cnt);
+                assert_eq!(false, poetrie.rem(unknown));
+                assert_eq!(0, poetrie.btr.len());
+                assert_eq!(1, poetrie.cnt);
 
-                assert_eq!(true, trie.rem(known));
-                assert_eq!(0, trie.btr.len());
-                assert_eq!(0, trie.cnt);
-                assert_eq!(false, trie.en(known));
+                assert_eq!(true, poetrie.rem(known));
+                assert_eq!(0, poetrie.btr.len());
+                assert_eq!(0, poetrie.cnt);
+                assert_eq!(false, poetrie.en(known));
             }
         }
 
@@ -568,53 +568,53 @@ mod tests_of_units {
         // path to another entry where path len varies 0…m
         mod rem_actual {
 
-            use crate::{Entry, Potrie};
+            use crate::{Entry, Poetrie};
 
             #[test]
             fn basic_test() {
                 let entry = &Entry("abcxyz");
 
-                let mut trie = Potrie::new();
-                _ = trie.ins(entry);
-                _ = trie.track(entry, true);
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
+                _ = poetrie.track(entry, true);
 
-                _ = trie.rem_actual(&mut 0);
-                assert_eq!(false, trie.en(entry));
+                _ = poetrie.rem_actual(&mut 0);
+                assert_eq!(false, poetrie.en(entry));
             }
 
             #[test]
             fn inner_entry() {
-                let mut trie = Potrie::new();
+                let mut poetrie = Poetrie::new();
 
                 let outer = &Entry("Keyword");
-                _ = trie.ins(outer);
+                _ = poetrie.ins(outer);
 
                 let inner = &Entry("Key");
-                _ = trie.ins(inner);
+                _ = poetrie.ins(inner);
 
                 let mut esc_code = 0;
-                _ = trie.track(inner, true);
+                _ = poetrie.track(inner, true);
 
-                _ = trie.rem_actual(&mut esc_code);
+                _ = poetrie.rem_actual(&mut esc_code);
                 assert_eq!(1, esc_code);
 
-                assert_eq!(false, trie.en(inner));
-                assert_eq!(true, trie.en(outer));
+                assert_eq!(false, poetrie.en(inner));
+                assert_eq!(true, poetrie.en(outer));
             }
 
             #[test]
             fn links_removal() {
                 let entry = &Entry("Keyword");
-                let mut trie = Potrie::new();
-                _ = trie.ins(entry);
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
 
                 let mut esc_code = 0;
-                _ = trie.track(entry, true);
-                _ = trie.rem_actual(&mut esc_code);
+                _ = poetrie.track(entry, true);
+                _ = poetrie.rem_actual(&mut esc_code);
                 assert_eq!(4, esc_code);
 
-                assert_eq!(false, trie.en(entry));
-                assert_eq!(None, trie.root.links);
+                assert_eq!(false, poetrie.en(entry));
+                assert_eq!(None, poetrie.root.links);
             }
 
             #[test]
@@ -622,37 +622,37 @@ mod tests_of_units {
                 let dissimilar = &Entry("Dissimilar");
                 let keyword = &Entry("Keyword");
 
-                let mut trie = Potrie::new();
-                _ = trie.ins(dissimilar);
-                _ = trie.ins(keyword);
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(dissimilar);
+                _ = poetrie.ins(keyword);
 
                 let mut esc_code = 0;
-                _ = trie.track(keyword, true);
-                _ = trie.rem_actual(&mut esc_code);
+                _ = poetrie.track(keyword, true);
+                _ = poetrie.rem_actual(&mut esc_code);
                 assert_eq!(2, esc_code);
 
-                assert_eq!(false, trie.en(keyword));
-                assert_eq!(true, trie.en(dissimilar));
+                assert_eq!(false, poetrie.en(keyword));
+                assert_eq!(true, poetrie.en(dissimilar));
             }
 
             #[test]
             fn entry_under_entry() {
                 let above = &Entry("keyworder");
                 let under = &Entry("keyworders");
-                let mut trie = Potrie::new();
-                _ = trie.ins(above);
-                _ = trie.ins(under);
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(above);
+                _ = poetrie.ins(under);
 
                 let mut esc_code = 0;
-                _ = trie.track(under, true);
-                _ = trie.rem_actual(&mut esc_code);
+                _ = poetrie.track(under, true);
+                _ = poetrie.rem_actual(&mut esc_code);
                 assert_eq!(3, esc_code);
 
-                assert_eq!(false, trie.en(under));
-                assert_eq!(true, trie.en(above));
+                assert_eq!(false, poetrie.en(under));
+                assert_eq!(true, poetrie.en(above));
 
-                _ = trie.track(above, true);
-                let btr = &trie.btr;
+                _ = poetrie.track(above, true);
+                let btr = &poetrie.btr;
                 let last = btr[btr.len() - 1];
                 assert_eq!('r', last.0);
                 let node = unsafe { last.1.as_ref() }.unwrap();
@@ -662,22 +662,22 @@ mod tests_of_units {
 
         mod track {
 
-            use crate::{Entry, NULL, Potrie, TraRes};
+            use crate::{Entry, NULL, Poetrie, TraRes};
 
             #[test]
             fn tracing() {
-                let mut trie = Potrie::new();
+                let mut poetrie = Poetrie::new();
 
                 let entries = ["k", "key", "keyword"];
                 for e in entries {
-                    _ = trie.ins(&Entry(e));
+                    _ = poetrie.ins(&Entry(e));
                 }
 
                 let keyword = entries[2];
 
-                _ = trie.track(&Entry(keyword), true);
+                _ = poetrie.track(&Entry(keyword), true);
 
-                let trace = trie.btr;
+                let trace = poetrie.btr;
                 let proof = format!("{}{}", NULL, keyword);
                 for (ix, c) in proof.chars().enumerate() {
                     let d = trace[ix];
@@ -695,9 +695,9 @@ mod tests_of_units {
             fn ok() {
                 let entry = &Entry("información meteorológica");
 
-                let mut trie = Potrie::new();
-                _ = trie.ins(entry);
-                let res = trie.track(entry, false);
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
+                let res = poetrie.track(entry, false);
 
                 assert_eq!(TraRes::Ok, res);
             }
@@ -707,9 +707,9 @@ mod tests_of_units {
                 let entry = &Entry("wordbook");
                 let bad_entry = &Entry("wordbooks");
 
-                let mut trie = Potrie::new();
-                _ = trie.ins(entry);
-                let res = trie.track(bad_entry, false);
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
+                let res = poetrie.track(bad_entry, false);
                 assert_eq!(TraRes::UnknownForAbsentPathLinks, res);
             }
 
@@ -718,9 +718,9 @@ mod tests_of_units {
                 let entry = &Entry("wordbookz");
                 let bad_entry = &Entry("wordbooks");
 
-                let mut trie = Potrie::new();
-                _ = trie.ins(entry);
-                let res = trie.track(bad_entry, false);
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
+                let res = poetrie.track(bad_entry, false);
                 assert_eq!(TraRes::UnknownForAbsentPathNode, res);
             }
 
@@ -729,10 +729,10 @@ mod tests_of_units {
                 let entry = &Entry("wordbooks");
                 let bad_entry = &Entry("wordbook");
 
-                let mut trie = Potrie::new();
-                _ = trie.ins(entry);
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
 
-                let res = trie.track(bad_entry, false);
+                let res = poetrie.track(bad_entry, false);
                 assert_eq!(TraRes::UnknownForNotEntry, res);
             }
         }
@@ -740,14 +740,14 @@ mod tests_of_units {
         #[test]
         fn ct() {
             let test = 3;
-            let mut trie = Potrie::new();
-            assert_eq!(0, trie.ct());
-            trie.cnt = test;
-            assert_eq!(test, trie.ct());
+            let mut poetrie = Poetrie::new();
+            assert_eq!(0, poetrie.ct());
+            poetrie.cnt = test;
+            assert_eq!(test, poetrie.ct());
         }
 
         mod ext {
-            use crate::{Entry, Potrie};
+            use crate::{Entry, Poetrie};
 
             #[test]
             fn basic_test() {
@@ -765,12 +765,12 @@ mod tests_of_units {
 
                 let entries = proof.iter().map(|x| Entry(x.as_str()));
 
-                let mut trie = Potrie::new();
+                let mut poetrie = Poetrie::new();
                 for e in entries.clone() {
-                    _ = trie.ins(&e);
+                    _ = poetrie.ins(&e);
                 }
 
-                let ext = trie.ext();
+                let ext = poetrie.ext();
                 assert_eq!(true, ext.is_some());
                 let mut ext = ext.unwrap();
 
@@ -782,14 +782,14 @@ mod tests_of_units {
                 assert_eq!(true, ext.capacity() >= 1000);
 
                 for e in entries.clone() {
-                    assert_eq!(true, trie.en(&e));
+                    assert_eq!(true, poetrie.en(&e));
                 }
             }
 
             #[test]
             fn empty_tree() {
-                let mut trie = Potrie::new();
-                let ext = trie.ext();
+                let mut poetrie = Poetrie::new();
+                let ext = poetrie.ext();
 
                 assert_eq!(None, ext);
             }

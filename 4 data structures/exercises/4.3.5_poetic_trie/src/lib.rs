@@ -13,12 +13,12 @@ use uc::UC;
 
 type Links = HashMap<char, Node>;
 
-fn ext(l: &mut Links, buff: &mut String, o: &mut Vec<String>) {
+fn ext(l: &mut Links, buff: &mut Vec<char>, o: &mut Vec<String>) {
     for (k, n) in l.iter_mut() {
         buff.push(*k);
 
         if n.entry {
-            let entry = buff.clone();
+            let entry = buff.iter().rev().collect();
             o.push(entry);
         }
 
@@ -83,7 +83,8 @@ impl Poetrie {
     /// Return value is `true` if `entry` was inserted into tree, `false` if it was present already.
     pub fn ins(&mut self, entry: &Entry) -> bool {
         let mut node = &mut self.root;
-        for c in entry.chars() {
+        let mut chars = entry.chars();
+        while let Some(c) = chars.next_back() {
             let links = node.links.get_or_insert_with(|| Links::new());
             node = links.entry(c).or_insert(Node::empty());
         }
@@ -188,7 +189,8 @@ impl Poetrie {
             tr.push((NULL, node.to_mut_ptr()));
         }
 
-        for c in entry.chars() {
+        let mut chars = entry.chars();
+        while let Some(c) = chars.next_back() {
             if let Some(l) = node.links.as_ref() {
                 if let Some(n) = l.get(&c) {
                     if trace {
@@ -227,7 +229,7 @@ impl Poetrie {
         }
 
         // capacity is prebuffered to 1000
-        let mut buff = String::with_capacity(1000);
+        let mut buff = Vec::with_capacity(1000);
 
         // capacity is prebuffered to 1000
         let mut res = Vec::with_capacity(1000);
@@ -289,6 +291,31 @@ impl Debug for Node {
 #[cfg(test)]
 mod tests_of_units {
 
+    mod rev_entry {
+        use crate::Entry;
+
+        pub struct RevEntry(String);
+
+        impl RevEntry {
+            pub fn new(e: &str) -> Self {
+                let rev = e.chars().rev().collect();
+                RevEntry(rev)
+            }
+
+            pub fn entry(&self) -> Entry {
+                Entry(self.0.as_str())
+            }
+        }
+
+        use std::ops::Deref;
+        impl Deref for RevEntry {
+            type Target = String;
+            fn deref(&self) -> &String {
+                &self.0
+            }
+        }
+    }
+
     mod ext {
 
         use crate::{Entry, Poetrie, ext};
@@ -303,7 +330,7 @@ mod tests_of_units {
             _ = poetrie.ins(a);
             _ = poetrie.ins(z);
 
-            let mut buff = String::new();
+            let mut buff = Vec::new();
             let mut test = Vec::new();
 
             let links = unsafe { poetrie.root.links.as_mut().unwrap_unchecked() };
@@ -338,7 +365,7 @@ mod tests_of_units {
                 _ = poetrie.ins(&Entry(e.as_str()));
             }
 
-            let mut buff = String::new();
+            let mut buff = Vec::new();
             let mut test = Vec::new();
 
             let links = unsafe { poetrie.root.links.as_mut().unwrap_unchecked() };
@@ -370,7 +397,7 @@ mod tests_of_units {
                 _ = poetrie.ins(&Entry(p.as_str()));
             }
 
-            let mut buff = String::new();
+            let mut buff = Vec::new();
             let mut test = Vec::new();
 
             let links = unsafe { poetrie.root.links.as_mut().unwrap_unchecked() };
@@ -431,7 +458,7 @@ mod tests_of_units {
                 let mut links = links.unwrap();
 
                 let last_node_ix = entry.len() - 1;
-                for (ix, c) in entry.chars().enumerate() {
+                for (ix, c) in entry.chars().rev().enumerate() {
                     let node = &links.get(&c);
 
                     assert!(node.is_some());
@@ -504,7 +531,7 @@ mod tests_of_units {
                 let mut links = links.unwrap();
 
                 let last_ix = entry.len() - 1;
-                for (ix, c) in entry.chars().enumerate() {
+                for (ix, c) in entry.chars().rev().enumerate() {
                     let node = links.get(&c);
                     assert_eq!(true, node.is_some());
                     let node = node.unwrap();
@@ -575,11 +602,13 @@ mod tests_of_units {
         // path to another entry where path len varies 0…m
         mod rem_actual {
 
-            use crate::{Entry, Poetrie};
+            use super::super::rev_entry::RevEntry;
+            use crate::Poetrie;
 
             #[test]
             fn basic_test() {
-                let entry = &Entry("abcxyz");
+                let entry = RevEntry::new("abcxyz");
+                let entry = &entry.entry();
 
                 let mut poetrie = Poetrie::new();
                 _ = poetrie.ins(entry);
@@ -593,10 +622,12 @@ mod tests_of_units {
             fn inner_entry() {
                 let mut poetrie = Poetrie::new();
 
-                let outer = &Entry("Keyword");
-                _ = poetrie.ins(outer);
+                let outer = RevEntry::new("Keyword");
+                let outer = &outer.entry();
+                _ = poetrie.ins(&outer);
 
-                let inner = &Entry("Key");
+                let inner = RevEntry::new("Key");
+                let inner = &inner.entry();
                 _ = poetrie.ins(inner);
 
                 let mut esc_code = 0;
@@ -611,7 +642,8 @@ mod tests_of_units {
 
             #[test]
             fn links_removal() {
-                let entry = &Entry("Keyword");
+                let entry = RevEntry::new("Keyword");
+                let entry = &entry.entry();
                 let mut poetrie = Poetrie::new();
                 _ = poetrie.ins(entry);
 
@@ -626,8 +658,10 @@ mod tests_of_units {
 
             #[test]
             fn node_composing_path() {
-                let dissimilar = &Entry("Dissimilar");
-                let keyword = &Entry("Keyword");
+                let dissimilar = RevEntry::new("Dissimilar");
+                let dissimilar = &dissimilar.entry();
+                let keyword = RevEntry::new("Keyword");
+                let keyword = &keyword.entry();
 
                 let mut poetrie = Poetrie::new();
                 _ = poetrie.ins(dissimilar);
@@ -644,8 +678,10 @@ mod tests_of_units {
 
             #[test]
             fn entry_under_entry() {
-                let above = &Entry("keyworder");
-                let under = &Entry("keyworders");
+                let above = RevEntry::new("keyworder");
+                let above = &above.entry();
+                let under = RevEntry::new("keyworders");
+                let under = &under.entry();
                 let mut poetrie = Poetrie::new();
                 _ = poetrie.ins(above);
                 _ = poetrie.ins(under);
@@ -669,38 +705,40 @@ mod tests_of_units {
 
         mod track {
 
-            use crate::{Entry, NULL, Poetrie, TraRes};
+            use super::super::rev_entry::RevEntry;
+            use crate::{NULL, Poetrie, TraRes};
 
             #[test]
             fn tracing() {
                 let mut poetrie = Poetrie::new();
 
-                let entries = ["k", "key", "keyword"];
-                for e in entries {
-                    _ = poetrie.ins(&Entry(e));
+                let keyword = "keyword";
+                let entries = ["k", "key", keyword].map(|x| RevEntry::new(x));
+
+                for e in entries.iter() {
+                    _ = poetrie.ins(&e.entry());
                 }
 
-                let keyword = entries[2];
-
-                _ = poetrie.track(&Entry(keyword), true);
+                _ = poetrie.track(&entries[2].entry(), true);
 
                 let trace = poetrie.btr;
                 let proof = format!("{}{}", NULL, keyword);
                 for (ix, c) in proof.chars().enumerate() {
                     let d = trace[ix];
-                    assert_eq!(c, d.0);
+                    assert_eq!(c, d.0, "{ix}");
                 }
 
                 for e in entries {
-                    let (_, node) = trace[e.len()];
+                    let (c, node) = trace[e.len()];
                     let node = unsafe { node.as_ref() }.unwrap();
-                    assert_eq!(true, node.entry);
+                    assert_eq!(true, node.entry, "c: {c}, e: {}", *e);
                 }
             }
 
             #[test]
             fn ok() {
-                let entry = &Entry("información meteorológica");
+                let entry = RevEntry::new("información meteorológica");
+                let entry = &entry.entry();
 
                 let mut poetrie = Poetrie::new();
                 _ = poetrie.ins(entry);
@@ -711,35 +749,35 @@ mod tests_of_units {
 
             #[test]
             fn unknown_not_path() {
-                let entry = &Entry("wordbook");
-                let bad_entry = &Entry("wordbooks");
+                let entry = RevEntry::new("wordbook");
+                let bad_entry = RevEntry::new("wordbooks");
 
                 let mut poetrie = Poetrie::new();
-                _ = poetrie.ins(entry);
-                let res = poetrie.track(bad_entry, false);
+                _ = poetrie.ins(&entry.entry());
+                let res = poetrie.track(&bad_entry.entry(), false);
                 assert_eq!(TraRes::UnknownForAbsentPathLinks, res);
             }
 
             #[test]
             fn unknown_not_path2() {
-                let entry = &Entry("wordbookz");
-                let bad_entry = &Entry("wordbooks");
+                let entry = RevEntry::new("wordbookz");
+                let bad_entry = RevEntry::new("wordbooks");
 
                 let mut poetrie = Poetrie::new();
-                _ = poetrie.ins(entry);
-                let res = poetrie.track(bad_entry, false);
+                _ = poetrie.ins(&entry.entry());
+                let res = poetrie.track(&bad_entry.entry(), false);
                 assert_eq!(TraRes::UnknownForAbsentPathNode, res);
             }
 
             #[test]
             fn unknown_not_entry() {
-                let entry = &Entry("wordbooks");
-                let bad_entry = &Entry("wordbook");
+                let entry = RevEntry::new("wordbooks");
+                let bad_entry = RevEntry::new("wordbook");
 
                 let mut poetrie = Poetrie::new();
-                _ = poetrie.ins(entry);
+                _ = poetrie.ins(&entry.entry());
 
-                let res = poetrie.track(bad_entry, false);
+                let res = poetrie.track(&bad_entry.entry(), false);
                 assert_eq!(TraRes::UnknownForNotEntry, res);
             }
         }

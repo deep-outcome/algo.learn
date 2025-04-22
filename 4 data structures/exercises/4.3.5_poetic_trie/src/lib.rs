@@ -1,11 +1,12 @@
 //! Poetrie, poetic trie, is trie designated for finding rhymes for your verses.
 //!
-//! For given input and populated tree it will find word with lengthiest common suffix for you.
+//! For given input and populated tree it will find word with lengthiest shared suffix for you.
 // improvements:
-//      - return all words with x-length common suffix
+//      - return n (10, max 10, …) words with x-length shared suffix
 //      - allow to speficy expected min a max suffix match length
 //      - custom letter equalizer
 //      - use verbose method names
+//      - case insensivity
 use std::{collections::hash_map::HashMap, ops::Deref};
 
 mod uc;
@@ -29,6 +30,9 @@ fn ext(l: &mut Links, buff: &mut Vec<char>, o: &mut Vec<String>) {
         _ = buff.pop();
     }
 }
+
+/// `Entry` alias for using in key role.
+pub type Key<'a> = Entry<'a>;
 
 /// `&str` validated for usage with `Poetrie`.
 #[derive(Clone, PartialEq, Debug)]
@@ -55,7 +59,7 @@ impl<'a> Deref for Entry<'a> {
     }
 }
 
-/// Poetrie, poetic retrieval tree implementation for finding common word suffixes.
+/// Poetrie, poetic retrieval tree implementation for finding words with shared suffixes.
 ///
 /// Inputs are not validated, with exception for 0-lenght, thus is up to consumer code
 /// to populate tree with sensible values.
@@ -106,6 +110,16 @@ impl Poetrie {
         let res = self.track(entry, false);
 
         TraRes::Ok == res
+    }
+
+    /// Finds entry with most shared suffix to key.
+    ///
+    /// If there are more entries with equal suffix length
+    /// only one in unguaranteed order is returned.
+    ///
+    /// Case sensitive.
+    pub fn suf(&self, key: &Key) -> String {
+        String::new()
     }
 
     /// Removes entry from tree.

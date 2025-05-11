@@ -7,6 +7,7 @@
 //      - custom letter equalizer
 //      - use verbose method names
 //      - case insensivity
+// check 'imp:' also
 use std::{collections::hash_map::HashMap, ops::Deref};
 
 mod uc;
@@ -145,7 +146,7 @@ impl Poetrie {
 
     fn rem_actual(&mut self, #[cfg(test)] esc_code: &mut usize) {
         let mut trace = self.btr.iter();
-        let en_duo = trace.next_back().unwrap();
+        let en_duo = unsafe { trace.next_back().unwrap_unchecked() };
         let mut node = unsafe { en_duo.1.as_mut() }.unwrap();
 
         node.entry = false;
@@ -195,6 +196,144 @@ impl Poetrie {
         }
     }
 
+    // case-sensitive which is not senseful
+    fn find(&self, key: &Key, #[cfg(test)] b_code: &mut usize) -> FindRes {
+        let mut chars = key.chars();
+
+        // operative node
+        let mut op_node = &self.root;
+        if let Some(l) = op_node.links.as_ref() {
+            let c = unsafe { chars.next_back().unwrap_unchecked() };
+            if l.get(&c).is_none() {
+                return FindRes::NoJointSuffix;
+            }
+        } else {
+            return FindRes::EmptyTree;
+        }
+
+        // closest branch information
+        let mut branching = None;
+        // backup index
+        let mut bax = None;
+        // match
+        let mut buff = Vec::with_capacity(1000);
+
+        let mut chars = key.chars();
+
+        // track key as much as possible first
+        let mut ix = 0;
+        if let Some(mut c) = chars.next_back() {
+            'track: loop {
+                if let Some(l) = op_node.links.as_ref() {
+                    if let Some(n) = l.get(&c) {
+                        buff.push(c);
+                        op_node = n;
+
+                        if let Some(next_c) = chars.next_back() {
+                            // imp: (almost) always saved on root
+                            // check if there is clearer way
+                            if l.len() > 1 {
+                                branching = Some((l, (ix, c)));
+                            }
+
+                            if n.entry {
+                                bax = Some(ix);
+                            }
+
+                            c = next_c;
+                        } else {
+                            #[cfg(test)]
+                            set_bcode(2, b_code);
+                            break 'track;
+                        }
+
+                        ix += 1;
+                        continue;
+                    }
+
+                    #[cfg(test)]
+                    set_bcode(4, b_code);
+                    break 'track;
+                }
+
+                #[cfg(test)]
+                set_bcode(8, b_code);
+                break 'track;
+            }
+        }
+
+        let bak_len = if let Some(ix) = bax { ix + 1 } else { 0 };
+
+        // CONTINUATION
+        // Is possible:
+        // - key is suffix to some entry
+        // - key has partially shared suffix with some entry
+        //
+        // Not possible:
+        // - key is entry and no suffix to other entry
+        // - part of key suffix is other entry
+        if !op_node.links.is_some() {
+            if let Some((bl, (ix, c))) = branching {
+                // subentry with longer shared suffix must be
+                // prioritized over branch
+                if bak_len > ix {
+                    #[cfg(test)]
+                    set_bcode(256, b_code);
+                    return ok(&buff[..bak_len]);
+                }
+
+                #[cfg(test)]
+                set_bcode(512, b_code);
+
+                buff.truncate(ix);
+
+                // imp: possibly randomize somehow node selection
+                for (test_c, n) in bl.iter() {
+                    let test_c = *test_c;
+                    if test_c == c {
+                        continue;
+                    }
+
+                    buff.push(test_c);
+                    op_node = n;
+                }
+            } else {
+                return if bak_len == 0 {
+                    #[cfg(test)]
+                    set_bcode(16, b_code);
+                    FindRes::OnlyKeyMatches
+                } else {
+                    #[cfg(test)]
+                    set_bcode(32, b_code);
+                    return ok(&buff[..bak_len]);
+                };
+            }
+        }
+
+        // extend or connect branch now, if possible
+        while let Some(l) = op_node.links.as_ref() {
+            // imp: possibly randomize hashmap key selection
+            let (c, n) = unsafe { l.iter().next().unwrap_unchecked() };
+            buff.push(*c);
+            op_node = n;
+        }
+
+        #[cfg(test)]
+        set_bcode(128, b_code);
+        return ok(&buff);
+
+        fn ok(cs: &[char]) -> FindRes {
+            return FindRes::Ok(cs.iter().rev().collect());
+        }
+
+        #[cfg(test)]
+        fn set_bcode(c: usize, b_code: &mut usize) {
+            let code = *b_code;
+            *b_code = code | c;
+        }
+    }
+
+    // use track strain?
     fn track(&self, entry: &Entry, trace: bool) -> TraRes {
         let mut node = &self.root;
         let tr = self.btr.get_mut();
@@ -264,7 +403,14 @@ enum TraRes {
     UnknownForAbsentPathNode,
 }
 
-#[cfg_attr(test, derive(PartialEq, Clone))]
+#[cfg_attr(test, derive(Debug), derive(PartialEq))]
+enum FindRes {
+    Ok(String),
+    OnlyKeyMatches,
+    EmptyTree,
+    NoJointSuffix,
+}
+
 struct Node {
     links: Option<Links>,
     entry: bool,
@@ -284,6 +430,13 @@ impl Node {
 
     const fn to_mut_ptr(&self) -> *mut Self {
         (self as *const Self).cast_mut()
+    }
+}
+
+#[cfg(test)]
+impl PartialEq for Node {
+    fn eq(&self, other: &Self) -> bool {
+        self as *const Self == other as *const Self
     }
 }
 
@@ -308,7 +461,7 @@ mod tests_of_units {
     mod rev_entry {
         use crate::Entry;
 
-        pub struct RevEntry(String);
+        pub struct RevEntry(pub String);
 
         impl RevEntry {
             pub fn new(e: &str) -> Self {
@@ -714,6 +867,394 @@ mod tests_of_units {
                 assert_eq!('r', last.0);
                 let node = unsafe { last.1.as_ref() }.unwrap();
                 assert_eq!(false, node.links());
+            }
+        }
+
+        mod find {
+            use crate::{Entry, FindRes, Poetrie, tests_of_units::rev_entry::RevEntry};
+
+            #[test]
+            fn basic_test() {
+                let proof = String::from("halieutics");
+                let entry = &Entry(proof.as_str());
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
+                _ = poetrie.ins(&Entry("codecs"));
+
+                let key = &Entry("lyrics");
+                let find = poetrie.find(key, &mut 0);
+
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            // mostly historical tests kept mostly for case of reworks
+            mod one_letters {
+
+                use crate::{Entry, FindRes, Poetrie};
+
+                #[test]
+                // key matches entry only on last
+                fn exactly_last_match_1a() {
+                    let entry = &Entry("s");
+                    let key = &Entry("lyrics");
+
+                    let mut poetrie = Poetrie::new();
+                    _ = poetrie.ins(entry);
+
+                    let mut b_code = 0;
+                    let find = poetrie.find(key, &mut b_code);
+
+                    assert_eq!(40, b_code);
+                    assert_eq!(FindRes::Ok(String::from("s")), find);
+                }
+
+                #[test]
+                // key matches entry only on last
+                fn exactly_last_match_1b() {
+                    let entry = &Entry("s");
+                    let key = &Entry("lyrics");
+
+                    let mut poetrie = Poetrie::new();
+                    _ = poetrie.ins(entry);
+                    _ = poetrie.ins(key);
+
+                    let mut b_code = 0;
+                    let find = poetrie.find(key, &mut b_code);
+
+                    assert_eq!(34, b_code);
+                    assert_eq!(FindRes::Ok(String::from("s")), find);
+                }
+
+                #[test]
+                // entry matches key only on last
+                fn exactly_last_match_2a() {
+                    let proof = String::from("lyrics");
+                    let entry = &Entry(proof.as_str());
+                    let key = &Entry("s");
+
+                    let mut poetrie = Poetrie::new();
+                    _ = poetrie.ins(entry);
+
+                    let mut b_code = 0;
+                    let find = poetrie.find(key, &mut b_code);
+
+                    assert_eq!(130, b_code);
+                    assert_eq!(FindRes::Ok(proof), find);
+                }
+
+                #[test]
+                // entry matches key only on last
+                fn exactly_last_match_2b() {
+                    let proof = String::from("lyrics");
+                    let entry = &Entry(proof.as_str());
+                    let key = &Entry("s");
+
+                    let mut poetrie = Poetrie::new();
+                    _ = poetrie.ins(entry);
+                    _ = poetrie.ins(key);
+
+                    let mut b_code = 0;
+                    let find = poetrie.find(key, &mut b_code);
+
+                    assert_eq!(130, b_code);
+                    assert_eq!(FindRes::Ok(proof), find);
+                }
+
+                #[test]
+                // key matches itself only on last
+                fn exactly_last_match_3() {
+                    let key_entry = &Entry("s");
+
+                    let mut poetrie = Poetrie::new();
+                    _ = poetrie.ins(key_entry);
+
+                    let mut b_code = 0;
+                    let find = poetrie.find(key_entry, &mut b_code);
+
+                    assert_eq!(18, b_code);
+                    assert_eq!(FindRes::OnlyKeyMatches, find);
+                }
+            }
+
+            #[test]
+            fn no_data() {
+                let key = &Entry("lyrics");
+
+                let poetrie = Poetrie::new();
+                let find = poetrie.find(key, &mut 0);
+
+                assert_eq!(FindRes::EmptyTree, find);
+            }
+
+            #[test]
+            fn no_suffix_match() {
+                let entry = &Entry("epicalyx");
+                let key = &Entry("lyrics");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
+
+                let find = poetrie.find(key, &mut 0);
+
+                assert_eq!(FindRes::NoJointSuffix, find);
+            }
+
+            #[test]
+            fn key_matches_itself_only() {
+                let itself = &Entry("lyrics");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(itself);
+
+                let mut b_code = 0;
+                let find = poetrie.find(itself, &mut b_code);
+
+                assert_eq!(18, b_code);
+                assert_eq!(FindRes::OnlyKeyMatches, find);
+            }
+
+            #[test]
+            fn key_is_suffix_to_entry_1() {
+                let subentry = RevEntry::new("document");
+                let entry = RevEntry::new("documentalist");
+                let proof = entry.0.clone();
+
+                let key = RevEntry::new("documental");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(&subentry.entry());
+                _ = poetrie.ins(&entry.entry());
+
+                let mut b_code = 0;
+                let find = poetrie.find(&key.entry(), &mut b_code);
+
+                assert_eq!(130, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            #[test]
+            fn key_is_suffix_to_entry_2() {
+                let subentry = RevEntry::new("document");
+                let entry = RevEntry::new("documentalist");
+                let proof = entry.0.clone();
+
+                let key = RevEntry::new("documental");
+                let key = &key.entry();
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(&subentry.entry());
+                _ = poetrie.ins(&entry.entry());
+                _ = poetrie.ins(key);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(130, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            #[test]
+            fn only_subentry_is_possible() {
+                let subentry = RevEntry::new("document");
+                let entry = RevEntry::new("documental");
+                let proof = entry.0.clone();
+
+                let key = RevEntry::new("documentalist");
+                let key = &key.entry();
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(&subentry.entry());
+                _ = poetrie.ins(&entry.entry());
+                _ = poetrie.ins(key);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(34, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            #[test]
+            fn only_subsuffix_is_possible() {
+                let subentry = RevEntry::new("document");
+                let entry = RevEntry::new("documental");
+                let proof = entry.0.clone();
+
+                let key = RevEntry::new("documentalist");
+                let key = &key.entry();
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(&subentry.entry());
+                _ = poetrie.ins(&entry.entry());
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(40, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            #[test]
+            fn key_partially_shared_suffix_1() {
+                let proof = String::from("lyrics");
+                let entry = &Entry(proof.as_str());
+
+                let key = &Entry("athletics");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(132, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            #[test]
+            fn key_partially_shared_suffix_2() {
+                let proof = String::from("lyrics");
+                let entry = &Entry(proof.as_str());
+
+                let key = &Entry("athletics");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
+                _ = poetrie.ins(key);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(642, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            #[test]
+            fn prefer_suffix_entry_when_longer_share_1() {
+                // branching entry
+                let bra_ent = RevEntry::new("documentan");
+                let suf_ent = RevEntry::new("documental");
+                let proof = suf_ent.0.clone();
+
+                let key = RevEntry::new("documentalist");
+                let key = &key.entry();
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(&suf_ent.entry());
+                _ = poetrie.ins(&bra_ent.entry());
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(264, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            #[test]
+            fn prefer_suffix_entry_when_longer_share_2() {
+                // branching entry
+                let bra_ent = RevEntry::new("documentan");
+                let suf_ent = RevEntry::new("documental");
+                let proof = suf_ent.0.clone();
+
+                let key = RevEntry::new("documentalist");
+                let key = &key.entry();
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(&suf_ent.entry());
+                _ = poetrie.ins(&bra_ent.entry());
+                _ = poetrie.ins(key);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(258, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            #[test]
+            // redundant, let keep it for parity
+            // same as key_partially_shared_suffix_1
+            fn prefer_branching_entry_when_at_least_same_share_1() {
+                let bra_ent = RevEntry::new("documented");
+                // suffix entry
+                let suf_ent = RevEntry::new("document");
+                let proof = bra_ent.0.clone();
+
+                let key = RevEntry::new("documentalist");
+                let key = &key.entry();
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(&suf_ent.entry());
+                _ = poetrie.ins(&bra_ent.entry());
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(132, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            #[test]
+            fn prefer_branching_entry_when_at_least_same_share_2() {
+                let bra_ent = RevEntry::new("documented");
+                let proof = bra_ent.0.clone();
+
+                // suffix entry
+                let suf_ent = RevEntry::new("document");
+
+                let key = RevEntry::new("documentalist");
+                let key = &key.entry();
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(&suf_ent.entry());
+                _ = poetrie.ins(&bra_ent.entry());
+                _ = poetrie.ins(key);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(642, b_code);
+
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            // inject all cases
+            #[test]
+            fn load() {
+                let mut poetrie = Poetrie::new();
+
+                let entries = ["aesthetics", "statics", "mechanics", "athletics", "physics"];
+                for e in entries {
+                    _ = poetrie.ins(&Entry(e));
+                }
+
+                let mut b_code = 0;
+                let key = Entry("musics");
+                let proof = String::from("physics");
+
+                assert_eq!(FindRes::Ok(proof), poetrie.find(&key, &mut b_code));
+                assert_eq!(132, b_code);
+
+                b_code = 0;
+                let key = Entry("athletics");
+                let proof = String::from("aesthetics");
+
+                assert_eq!(
+                    FindRes::Ok(proof),
+                    poetrie.find(&key, &mut b_code),
+                    "{}",
+                    b_code
+                );
+                assert_eq!(642, b_code);
+
+                b_code = 0;
+                let key = Entry("aesthetics");
+                let proof = String::from("athletics");
+
+                assert_eq!(FindRes::Ok(proof), poetrie.find(&key, &mut b_code));
+                assert_eq!(642, b_code);
             }
         }
 

@@ -199,11 +199,12 @@ impl Poetrie {
     // case-sensitive which is not senseful
     fn find(&self, key: &Key, #[cfg(test)] b_code: &mut usize) -> FindRes {
         let mut chars = key.chars();
+        let mut c;
 
         // operative node
         let mut op_node = &self.root;
         if let Some(l) = op_node.links.as_ref() {
-            let c = unsafe { chars.next_back().unwrap_unchecked() };
+            c = unsafe { chars.next_back().unwrap_unchecked() };
             if l.get(&c).is_none() {
                 return FindRes::NoJointSuffix;
             }
@@ -218,48 +219,43 @@ impl Poetrie {
         // match
         let mut buff = Vec::with_capacity(1000);
 
-        let mut chars = key.chars();
-
         // track key as much as possible first
         let mut ix = 0;
-        if let Some(mut c) = chars.next_back() {
-            'track: loop {
-                if let Some(l) = op_node.links.as_ref() {
-                    if let Some(n) = l.get(&c) {
-                        buff.push(c);
-                        op_node = n;
 
-                        if let Some(next_c) = chars.next_back() {
-                            // imp: (almost) always saved on root
-                            // check if there is clearer way
-                            if l.len() > 1 {
-                                branching = Some((l, (ix, c)));
-                            }
+        'track: loop {
+            if let Some(l) = op_node.links.as_ref() {
+                if let Some(n) = l.get(&c) {
+                    buff.push(c);
+                    op_node = n;
 
-                            if n.entry {
-                                bax = Some(ix);
-                            }
-
-                            c = next_c;
-                        } else {
-                            #[cfg(test)]
-                            set_bcode(2, b_code);
-                            break 'track;
+                    if let Some(next_c) = chars.next_back() {
+                        if l.len() > 1 {
+                            branching = Some((l, (ix, c)));
                         }
 
-                        ix += 1;
-                        continue;
+                        if n.entry {
+                            bax = Some(ix);
+                        }
+
+                        c = next_c;
+                    } else {
+                        #[cfg(test)]
+                        set_bcode(2, b_code);
+                        break 'track;
                     }
 
-                    #[cfg(test)]
-                    set_bcode(4, b_code);
-                    break 'track;
+                    ix += 1;
+                    continue;
                 }
 
                 #[cfg(test)]
-                set_bcode(8, b_code);
+                set_bcode(4, b_code);
                 break 'track;
             }
+
+            #[cfg(test)]
+            set_bcode(8, b_code);
+            break 'track;
         }
 
         let bak_len = if let Some(ix) = bax { ix + 1 } else { 0 };
@@ -333,7 +329,6 @@ impl Poetrie {
         }
     }
 
-    // use track strain?
     fn track(&self, entry: &Entry, trace: bool) -> TraRes {
         let mut node = &self.root;
         let tr = self.btr.get_mut();
@@ -1096,7 +1091,7 @@ mod tests_of_units {
             }
 
             #[test]
-            fn key_partially_shared_suffix_1() {
+            fn key_partially_shared_suffix_1a() {
                 let proof = String::from("lyrics");
                 let entry = &Entry(proof.as_str());
 
@@ -1113,11 +1108,46 @@ mod tests_of_units {
             }
 
             #[test]
-            fn key_partially_shared_suffix_2() {
+            fn key_partially_shared_suffix_1b() {
+                let proof = String::from("lyrics");
+                let entry = &Entry(proof.as_str());
+
+                let key = &Entry("carboniferous");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(132, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            #[test]
+            fn key_partially_shared_suffix_2a() {
                 let proof = String::from("lyrics");
                 let entry = &Entry(proof.as_str());
 
                 let key = &Entry("athletics");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
+                _ = poetrie.ins(key);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(642, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            #[test]
+            fn key_partially_shared_suffix_2b() {
+                let proof = String::from("lyrics");
+                let entry = &Entry(proof.as_str());
+
+                let key = &Entry("carboniferous");
 
                 let mut poetrie = Poetrie::new();
                 _ = poetrie.ins(entry);
@@ -1426,4 +1456,4 @@ mod tests_of_units {
     }
 }
 
-// cargo test --release
+// cargo fmt && cargo test --release

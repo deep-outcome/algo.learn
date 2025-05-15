@@ -238,14 +238,14 @@ impl Poetrie {
                         }
 
                         c = next_c;
+
+                        ix += 1;
+                        continue;
                     } else {
                         #[cfg(test)]
                         set_bcode(2, b_code);
                         break 'track;
                     }
-
-                    ix += 1;
-                    continue;
                 }
 
                 #[cfg(test)]
@@ -1050,7 +1050,7 @@ mod tests_of_units {
             }
 
             #[test]
-            fn only_subentry_is_possible() {
+            fn only_subentry_is_possible1() {
                 let subentry = RevEntry::new("document");
                 let entry = RevEntry::new("documental");
                 let proof = entry.0.clone();
@@ -1071,7 +1071,25 @@ mod tests_of_units {
             }
 
             #[test]
-            fn only_subsuffix_is_possible() {
+            fn only_subentry_is_possible2() {
+                let proof = String::from("m");
+                let subentry = Entry(proof.as_str());
+
+                let key = &Entry("anagram");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(&subentry);
+                _ = poetrie.ins(key);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(34, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            #[test]
+            fn only_subsuffix_is_possible1() {
                 let subentry = RevEntry::new("document");
                 let entry = RevEntry::new("documental");
                 let proof = entry.0.clone();
@@ -1082,6 +1100,23 @@ mod tests_of_units {
                 let mut poetrie = Poetrie::new();
                 _ = poetrie.ins(&subentry.entry());
                 _ = poetrie.ins(&entry.entry());
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(40, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            #[test]
+            fn only_subsuffix_is_possible2() {
+                let proof = String::from("m");
+                let entry = Entry(proof.as_str());
+
+                let key = &Entry("conundrum");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(&entry);
 
                 let mut b_code = 0;
                 let find = poetrie.find(key, &mut b_code);

@@ -201,11 +201,17 @@ impl Poetrie {
         let mut chars = key.chars();
         let mut c;
 
+        // match
+        let mut buff = Vec::with_capacity(1000);
+
         // operative node
         let mut op_node = &self.root;
         if let Some(l) = op_node.links.as_ref() {
             c = unsafe { chars.next_back().unwrap_unchecked() };
-            if l.get(&c).is_none() {
+            if let Some(n) = l.get(&c) {
+                op_node = n;
+                buff.push(c)
+            } else {
                 return FindRes::NoJointSuffix;
             }
         } else {
@@ -214,38 +220,41 @@ impl Poetrie {
 
         // closest branch information
         let mut branching = None;
-        // backup index
-        let mut bax = None;
-        // match
-        let mut buff = Vec::with_capacity(1000);
+        let mut bak_len = 0;
 
         // track key as much as possible first
-        let mut ix = 0;
+        let mut len = 1;
 
         'track: loop {
+            let next_c = chars.next_back();
+            let has_next = next_c.is_some();
+
+            if has_next {
+                if op_node.entry {
+                    bak_len = len;
+                }
+            } else {
+                #[cfg(test)]
+                set_bcode(2, b_code);
+                break 'track;
+            };
+            
             if let Some(l) = op_node.links.as_ref() {
+                c = unsafe { next_c.unwrap_unchecked() };
+
+                // branching is usable also
+                // on last node ?
+                // check with this implementation possibility
+                if l.len() > 1 {
+                    branching = Some((l, (len, c)));
+                }
+
                 if let Some(n) = l.get(&c) {
                     buff.push(c);
                     op_node = n;
 
-                    if let Some(next_c) = chars.next_back() {
-                        if l.len() > 1 {
-                            branching = Some((l, (ix, c)));
-                        }
-
-                        if n.entry {
-                            bax = Some(ix);
-                        }
-
-                        c = next_c;
-
-                        ix += 1;
-                        continue;
-                    } else {
-                        #[cfg(test)]
-                        set_bcode(2, b_code);
-                        break 'track;
-                    }
+                    len += 1;
+                    continue;
                 }
 
                 #[cfg(test)]
@@ -258,8 +267,6 @@ impl Poetrie {
             break 'track;
         }
 
-        let bak_len = if let Some(ix) = bax { ix + 1 } else { 0 };
-
         // CONTINUATION
         // Is possible:
         // - key is suffix to some entry
@@ -269,10 +276,10 @@ impl Poetrie {
         // - key is entry and no suffix to other entry
         // - part of key suffix is other entry
         if !op_node.links.is_some() {
-            if let Some((bl, (ix, c))) = branching {
+            if let Some((blinks, (blen, skip_c))) = branching {
                 // subentry with longer shared suffix must be
                 // prioritized over branch
-                if bak_len > ix {
+                if bak_len > blen {
                     #[cfg(test)]
                     set_bcode(256, b_code);
                     return ok(&buff[..bak_len]);
@@ -281,12 +288,12 @@ impl Poetrie {
                 #[cfg(test)]
                 set_bcode(512, b_code);
 
-                buff.truncate(ix);
+                buff.truncate(blen);
 
                 // imp: possibly randomize somehow node selection
-                for (test_c, n) in bl.iter() {
+                for (test_c, n) in blinks.iter() {
                     let test_c = *test_c;
-                    if test_c == c {
+                    if test_c == skip_c {
                         continue;
                     }
 
@@ -883,93 +890,87 @@ mod tests_of_units {
                 assert_eq!(FindRes::Ok(proof), find);
             }
 
-            // mostly historical tests kept mostly for case of reworks
-            mod one_letters {
+            #[test]
+            // key matches entry only on last
+            fn exactly_last_match_1a() {
+                let entry = &Entry("s");
+                let key = &Entry("lyrics");
 
-                use crate::{Entry, FindRes, Poetrie};
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
 
-                #[test]
-                // key matches entry only on last
-                fn exactly_last_match_1a() {
-                    let entry = &Entry("s");
-                    let key = &Entry("lyrics");
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
 
-                    let mut poetrie = Poetrie::new();
-                    _ = poetrie.ins(entry);
+                assert_eq!(40, b_code);
+                assert_eq!(FindRes::Ok(String::from("s")), find);
+            }
 
-                    let mut b_code = 0;
-                    let find = poetrie.find(key, &mut b_code);
+            #[test]
+            // key matches entry only on last
+            fn exactly_last_match_1b() {
+                let entry = &Entry("s");
+                let key = &Entry("lyrics");
 
-                    assert_eq!(40, b_code);
-                    assert_eq!(FindRes::Ok(String::from("s")), find);
-                }
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
+                _ = poetrie.ins(key);
 
-                #[test]
-                // key matches entry only on last
-                fn exactly_last_match_1b() {
-                    let entry = &Entry("s");
-                    let key = &Entry("lyrics");
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
 
-                    let mut poetrie = Poetrie::new();
-                    _ = poetrie.ins(entry);
-                    _ = poetrie.ins(key);
+                assert_eq!(34, b_code);
+                assert_eq!(FindRes::Ok(String::from("s")), find);
+            }
 
-                    let mut b_code = 0;
-                    let find = poetrie.find(key, &mut b_code);
+            #[test]
+            // entry matches key only on last
+            fn exactly_last_match_2a() {
+                let proof = String::from("lyrics");
+                let entry = &Entry(proof.as_str());
+                let key = &Entry("s");
 
-                    assert_eq!(34, b_code);
-                    assert_eq!(FindRes::Ok(String::from("s")), find);
-                }
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
 
-                #[test]
-                // entry matches key only on last
-                fn exactly_last_match_2a() {
-                    let proof = String::from("lyrics");
-                    let entry = &Entry(proof.as_str());
-                    let key = &Entry("s");
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
 
-                    let mut poetrie = Poetrie::new();
-                    _ = poetrie.ins(entry);
+                assert_eq!(130, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
 
-                    let mut b_code = 0;
-                    let find = poetrie.find(key, &mut b_code);
+            #[test]
+            // entry matches key only on last
+            fn exactly_last_match_2b() {
+                let proof = String::from("lyrics");
+                let entry = &Entry(proof.as_str());
+                let key = &Entry("s");
 
-                    assert_eq!(130, b_code);
-                    assert_eq!(FindRes::Ok(proof), find);
-                }
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
+                _ = poetrie.ins(key);
 
-                #[test]
-                // entry matches key only on last
-                fn exactly_last_match_2b() {
-                    let proof = String::from("lyrics");
-                    let entry = &Entry(proof.as_str());
-                    let key = &Entry("s");
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
 
-                    let mut poetrie = Poetrie::new();
-                    _ = poetrie.ins(entry);
-                    _ = poetrie.ins(key);
+                assert_eq!(130, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
 
-                    let mut b_code = 0;
-                    let find = poetrie.find(key, &mut b_code);
+            #[test]
+            // key matches itself only on last
+            fn exactly_last_match_3() {
+                let key_entry = &Entry("s");
 
-                    assert_eq!(130, b_code);
-                    assert_eq!(FindRes::Ok(proof), find);
-                }
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(key_entry);
 
-                #[test]
-                // key matches itself only on last
-                fn exactly_last_match_3() {
-                    let key_entry = &Entry("s");
+                let mut b_code = 0;
+                let find = poetrie.find(key_entry, &mut b_code);
 
-                    let mut poetrie = Poetrie::new();
-                    _ = poetrie.ins(key_entry);
-
-                    let mut b_code = 0;
-                    let find = poetrie.find(key_entry, &mut b_code);
-
-                    assert_eq!(18, b_code);
-                    assert_eq!(FindRes::OnlyKeyMatches, find);
-                }
+                assert_eq!(18, b_code);
+                assert_eq!(FindRes::OnlyKeyMatches, find);
             }
 
             #[test]
@@ -1067,6 +1068,45 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(34, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            #[test]
+            fn must_not_recourse_to_root_branching1() {
+                let proof = String::from("hilum");
+                let subentry = Entry(proof.as_str());
+                let entry = Entry("claybank");
+
+                let key = &Entry("haulm");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(&subentry);
+                _ = poetrie.ins(&entry);
+                _ = poetrie.ins(key);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(642, b_code);
+                assert_eq!(FindRes::Ok(proof), find);
+            }
+
+            #[test]
+            fn must_not_recourse_to_root_branching2() {
+                let proof = String::from("hilum");
+                let subentry = Entry(proof.as_str());
+                let entry = Entry("claybank");
+
+                let key = &Entry("haulm");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(&subentry);
+                _ = poetrie.ins(&entry);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(132, b_code);
                 assert_eq!(FindRes::Ok(proof), find);
             }
 
@@ -1281,7 +1321,6 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(642, b_code);
-
                 assert_eq!(FindRes::Ok(proof), find);
             }
 

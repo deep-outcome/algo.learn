@@ -226,22 +226,19 @@ impl Poetrie {
         let mut len = 1;
 
         'track: loop {
-            let next_c = chars.next_back();
-            let has_next = next_c.is_some();
-
-            if has_next {
+            if let Some(next_c) = chars.next_back() {
                 if op_node.entry {
                     bak_len = len;
                 }
+
+                c = next_c;
             } else {
                 #[cfg(test)]
                 set_bcode(2, b_code);
                 break 'track;
             };
-            
-            if let Some(l) = op_node.links.as_ref() {
-                c = unsafe { next_c.unwrap_unchecked() };
 
+            if let Some(l) = op_node.links.as_ref() {
                 // branching is usable also
                 // on last node ?
                 // check with this implementation possibility

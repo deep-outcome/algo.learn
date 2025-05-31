@@ -76,7 +76,7 @@ pub struct Poetrie {
 
 const NULL: char = '\0';
 impl Poetrie {
-    /// `Poetrie` constructor.
+    /// `Poetrie` constructor.    
     pub const fn new() -> Poetrie {
         Poetrie {
             root: Node::empty(),
@@ -882,7 +882,6 @@ mod tests_of_units {
             }
 
             #[test]
-            // key matches entry only on last
             fn exactly_last_match_1a() {
                 let entry = &Entry("s");
                 let key = &Entry("lyrics");
@@ -898,7 +897,6 @@ mod tests_of_units {
             }
 
             #[test]
-            // key matches entry only on last
             fn exactly_last_match_1b() {
                 let entry = &Entry("s");
                 let key = &Entry("lyrics");
@@ -915,7 +913,6 @@ mod tests_of_units {
             }
 
             #[test]
-            // entry matches key only on last
             fn exactly_last_match_2a() {
                 let proof = String::from("lyrics");
                 let entry = &Entry(proof.as_str());
@@ -932,7 +929,6 @@ mod tests_of_units {
             }
 
             #[test]
-            // entry matches key only on last
             fn exactly_last_match_2b() {
                 let proof = String::from("lyrics");
                 let entry = &Entry(proof.as_str());
@@ -950,7 +946,6 @@ mod tests_of_units {
             }
 
             #[test]
-            // key matches itself only on last
             fn exactly_last_match_3() {
                 let key_entry = &Entry("s");
 
@@ -1067,54 +1062,54 @@ mod tests_of_units {
                 let proof = String::from("hilum");
                 let subentry = Entry(proof.as_str());
                 let entry = Entry("claybank");
-
+                
                 let key = &Entry("haulm");
-
+                
                 let mut poetrie = Poetrie::new();
                 _ = poetrie.ins(&subentry);
                 _ = poetrie.ins(&entry);
                 _ = poetrie.ins(key);
-
+                
                 let mut b_code = 0;
                 let find = poetrie.find(key, &mut b_code);
-
+                
                 assert_eq!(642, b_code);
                 assert_eq!(FindRes::Ok(proof), find);
             }
-
+            
             #[test]
             fn must_not_recourse_to_root_branching2() {
                 let proof = String::from("hilum");
                 let subentry = Entry(proof.as_str());
                 let entry = Entry("claybank");
-
+                
                 let key = &Entry("haulm");
-
+                
                 let mut poetrie = Poetrie::new();
                 _ = poetrie.ins(&subentry);
                 _ = poetrie.ins(&entry);
-
+                
                 let mut b_code = 0;
                 let find = poetrie.find(key, &mut b_code);
-
+                
                 assert_eq!(132, b_code);
                 assert_eq!(FindRes::Ok(proof), find);
             }
-
+            
             #[test]
             fn only_subentry_is_possible2() {
                 let proof = String::from("m");
                 let subentry = Entry(proof.as_str());
-
+                
                 let key = &Entry("anagram");
-
+                
                 let mut poetrie = Poetrie::new();
                 _ = poetrie.ins(&subentry);
                 _ = poetrie.ins(key);
-
+                
                 let mut b_code = 0;
                 let find = poetrie.find(key, &mut b_code);
-
+                
                 assert_eq!(34, b_code);
                 assert_eq!(FindRes::Ok(proof), find);
             }
@@ -1154,7 +1149,7 @@ mod tests_of_units {
 
                 assert_eq!(40, b_code);
                 assert_eq!(FindRes::Ok(proof), find);
-            }
+            }            
 
             #[test]
             fn key_partially_shared_suffix_1a() {
@@ -1229,7 +1224,7 @@ mod tests_of_units {
             #[test]
             fn prefer_suffix_entry_when_longer_share_1() {
                 // branching entry
-                let bra_ent = RevEntry::new("documentan");
+                let bra_ent = RevEntry::new("documentarian");
                 let suf_ent = RevEntry::new("documental");
                 let proof = suf_ent.0.clone();
 
@@ -1250,7 +1245,7 @@ mod tests_of_units {
             #[test]
             fn prefer_suffix_entry_when_longer_share_2() {
                 // branching entry
-                let bra_ent = RevEntry::new("documentan");
+                let bra_ent = RevEntry::new("documentarian");
                 let suf_ent = RevEntry::new("documental");
                 let proof = suf_ent.0.clone();
 
@@ -1270,13 +1265,14 @@ mod tests_of_units {
             }
 
             #[test]
-            // redundant, let keep it for parity
-            // same as key_partially_shared_suffix_1
+            // redundant, kept for parity
+            // same as key_partially_shared_suffix_1a
             fn prefer_branching_entry_when_at_least_same_share_1() {
                 let bra_ent = RevEntry::new("documented");
+                let proof = bra_ent.0.clone();
+
                 // suffix entry
                 let suf_ent = RevEntry::new("document");
-                let proof = bra_ent.0.clone();
 
                 let key = RevEntry::new("documentalist");
                 let key = &key.entry();

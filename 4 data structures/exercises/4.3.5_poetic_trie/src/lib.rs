@@ -1111,42 +1111,42 @@ mod tests_of_units {
                 assert_eq!(40, b_code);
                 assert_eq!(FindRes::Ok(proof), find);
             }
-            
+
             #[test]
             fn must_not_recourse_to_root_branching1() {
                 let proof = String::from("hilum");
                 let subentry = Entry(proof.as_str());
                 let entry = Entry("claybank");
-                
+
                 let key = &Entry("haulm");
-                
+
                 let mut poetrie = Poetrie::new();
                 _ = poetrie.ins(&subentry);
                 _ = poetrie.ins(&entry);
                 _ = poetrie.ins(key);
-                
+
                 let mut b_code = 0;
                 let find = poetrie.find(key, &mut b_code);
-                
+
                 assert_eq!(642, b_code);
                 assert_eq!(FindRes::Ok(proof), find);
             }
-            
+
             #[test]
             fn must_not_recourse_to_root_branching2() {
                 let proof = String::from("hilum");
                 let subentry = Entry(proof.as_str());
                 let entry = Entry("claybank");
-                
+
                 let key = &Entry("haulm");
-                
+
                 let mut poetrie = Poetrie::new();
                 _ = poetrie.ins(&subentry);
                 _ = poetrie.ins(&entry);
-                
+
                 let mut b_code = 0;
                 let find = poetrie.find(key, &mut b_code);
-                
+
                 assert_eq!(132, b_code);
                 assert_eq!(FindRes::Ok(proof), find);
             }

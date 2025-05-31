@@ -1,6 +1,6 @@
 //! Poetrie, poetic trie, is trie designated for finding rhymes for your verses.
 //!
-//! For given input and populated tree it will find word with lengthiest shared suffix for you.
+//! For given input, and populated tree, it will find word with lengthiest shared suffix for you.
 // improvements:
 //      - return n (10, max 10, …) words with x-length shared suffix
 //      - allow to speficy expected min a max suffix match length
@@ -60,10 +60,12 @@ impl<'a> Deref for Entry<'a> {
     }
 }
 
-/// Poetrie, poetic retrieval tree implementation for finding words with shared suffixes.
+/// Poetrie is poetic retrieval tree implementation for finding words with shared suffixes.
 ///
-/// Inputs are not validated, with exception for 0-lenght, thus is up to consumer code
-/// to populate tree with sensible values.
+/// Inputs are validated only for 0 length thus is up to consumer code
+/// to allow population with sensible values only.
+///
+/// All methods are case sensitive.
 pub struct Poetrie {
     root: Node,
     // backtrace buff
@@ -117,8 +119,6 @@ impl Poetrie {
     ///
     /// If there are more entries with equal suffix length
     /// only one in unguaranteed order is returned.
-    ///
-    /// Case sensitive.
     pub fn suf(&self, key: &Key) -> String {
         String::new()
     }
@@ -223,12 +223,10 @@ impl Poetrie {
         let mut bak_len = 0;
 
         // track key as much as possible first
-        let mut len = 1;
-
         'track: loop {
             if let Some(next_c) = chars.next_back() {
                 if op_node.entry {
-                    bak_len = len;
+                    bak_len = buff.len();
                 }
 
                 c = next_c;
@@ -239,18 +237,14 @@ impl Poetrie {
             };
 
             if let Some(l) = op_node.links.as_ref() {
-                // branching is usable also
-                // on last node ?
-                // check with this implementation possibility
                 if l.len() > 1 {
-                    branching = Some((l, (len, c)));
+                    branching = Some((l, (buff.len(), c)));
                 }
 
                 if let Some(n) = l.get(&c) {
                     buff.push(c);
                     op_node = n;
 
-                    len += 1;
                     continue;
                 }
 

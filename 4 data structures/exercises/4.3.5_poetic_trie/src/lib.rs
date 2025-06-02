@@ -1311,13 +1311,24 @@ mod tests_of_units {
                 assert_eq!(FindRes::Ok(proof), find);
             }
 
-            // inject all cases
             #[test]
             fn load() {
                 let mut poetrie = Poetrie::new();
 
-                let entries = ["aesthetics", "statics", "mechanics", "athletics", "physics"];
-                for e in entries {
+                let rev_entries = ["document", "documentalist"];
+                let rev_entries = rev_entries.map(|x| RevEntry::new(x));
+                let rev_entries = rev_entries.iter().map(|x| x.0.as_str());
+
+                let entries = [
+                    "aesthetics",
+                    "statics",
+                    "mechanics",
+                    "athletics",
+                    "physics",
+                    "q",
+                    "epically",
+                ];
+                for e in entries.iter().map(|x| *x).chain(rev_entries) {
                     _ = poetrie.ins(&Entry(e));
                 }
 
@@ -1346,6 +1357,45 @@ mod tests_of_units {
 
                 assert_eq!(FindRes::Ok(proof), poetrie.find(&key, &mut b_code));
                 assert_eq!(642, b_code);
+
+                b_code = 0;
+                let key = Entry("epicalyx");
+                
+                assert_eq!(FindRes::NoJointSuffix, poetrie.find(&key, &mut b_code));
+                assert_eq!(0, b_code);
+
+                b_code = 0;
+                let key = RevEntry::new("documental");
+                let proof = RevEntry::new("documentalist").0;
+
+                assert_eq!(FindRes::Ok(proof), poetrie.find(&key.entry(), &mut b_code));
+                assert_eq!(130, b_code);
+
+                b_code = 0;
+                let key = RevEntry::new("documentalist");
+                let proof = RevEntry::new("document").0;
+
+                assert_eq!(FindRes::Ok(proof), poetrie.find(&key.entry(), &mut b_code));
+                assert_eq!(34, b_code);
+
+                b_code = 0;
+                let key = RevEntry::new("quadriceps");
+                let proof = String::from("q");
+
+                assert_eq!(FindRes::Ok(proof), poetrie.find(&key.entry(), &mut b_code));
+                assert_eq!(40, b_code);
+
+                b_code = 0;
+                let key = Entry("q");
+
+                assert_eq!(FindRes::OnlyKeyMatches, poetrie.find(&key, &mut b_code));
+                assert_eq!(18, b_code);
+
+                b_code = 0;
+                let key = Entry("epically");
+
+                assert_eq!(FindRes::OnlyKeyMatches, poetrie.find(&key, &mut b_code));
+                assert_eq!(18, b_code);
             }
         }
 

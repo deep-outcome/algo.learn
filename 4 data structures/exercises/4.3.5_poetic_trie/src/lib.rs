@@ -85,9 +85,10 @@ impl Poetrie {
         }
     }
 
-    /// Inserts entry specified into tree.
+    /// Use for entry insertions into tree.
     ///
-    /// Return value is `true` if `entry` was inserted into tree, `false` if it was present already.
+    /// Return value is `true` if `entry` was inserted into tree,
+    /// `false` if it was present already.
     pub fn ins(&mut self, entry: &Entry) -> bool {
         let mut node = &mut self.root;
         let mut chars = entry.chars();
@@ -106,7 +107,7 @@ impl Poetrie {
         }
     }
 
-    /// Verifies whether `entry` provided is present in tree.
+    /// Use to verify `entry` presence in tree.
     ///
     /// Return value is `true` if `entry` is present in tree, `false` otherwise.
     pub fn en(&self, entry: &Entry) -> bool {
@@ -115,12 +116,17 @@ impl Poetrie {
         TraRes::Ok == res
     }
 
-    /// Finds entry with most shared suffix to key.
+    /// Use to find entry with most shared suffix to key.
     ///
-    /// If there are more entries with equal suffix length
-    /// only one in unguaranteed order is returned.
-    pub fn suf(&self, key: &Key) -> String {
-        String::new()
+    /// If there are more entries with equal suffix length,
+    /// only one in unguaranteed precedence is returned.    
+    pub fn suf(&self, key: &Key) -> Result<String, FindErr> {
+        let res = self.find(
+            key,
+            #[cfg(test)]
+            &mut 0,
+        );
+        return res;
     }
 
     /// Removes entry from tree.
@@ -197,7 +203,7 @@ impl Poetrie {
     }
 
     // case-sensitive which is not senseful
-    fn find(&self, key: &Key, #[cfg(test)] b_code: &mut usize) -> FindRes {
+    fn find(&self, key: &Key, #[cfg(test)] b_code: &mut usize) -> Result<String, FindErr> {
         let mut chars = key.chars();
         let mut c;
 
@@ -212,10 +218,10 @@ impl Poetrie {
                 op_node = n;
                 buff.push(c)
             } else {
-                return FindRes::NoJointSuffix;
+                return Err(FindErr::NoJointSuffix);
             }
         } else {
-            return FindRes::EmptyTree;
+            return Err(FindErr::EmptyTree);
         }
 
         // closest branch information
@@ -295,7 +301,7 @@ impl Poetrie {
                 return if bak_len == 0 {
                     #[cfg(test)]
                     set_bcode(16, b_code);
-                    FindRes::OnlyKeyMatches
+                    Err(FindErr::OnlyKeyMatches)
                 } else {
                     #[cfg(test)]
                     set_bcode(32, b_code);
@@ -316,8 +322,8 @@ impl Poetrie {
         set_bcode(128, b_code);
         return ok(&buff);
 
-        fn ok(cs: &[char]) -> FindRes {
-            return FindRes::Ok(cs.iter().rev().collect());
+        fn ok(cs: &[char]) -> Result<String, FindErr> {
+            return Ok(cs.iter().rev().collect());
         }
 
         #[cfg(test)]
@@ -396,11 +402,14 @@ enum TraRes {
     UnknownForAbsentPathNode,
 }
 
-#[cfg_attr(test, derive(Debug), derive(PartialEq))]
-enum FindRes {
-    Ok(String),
+#[derive(Debug, PartialEq, Clone)]
+/// Various errors which can occur when searching common suffix. 
+pub enum FindErr {
+    /// Key provided has only one match in tree, itself.
     OnlyKeyMatches,
+    /// Tree is empty.
     EmptyTree,
+    /// No etry shares any sufix with key.
     NoJointSuffix,
 }
 
@@ -735,6 +744,32 @@ mod tests_of_units {
             }
         }
 
+        mod suf {
+            use crate::{Entry, FindErr, Key, Poetrie};
+
+            #[test]
+            fn basic_test() {
+                let mut poetrie = Poetrie::new();
+
+                let proof = String::from("quadriliteral");
+                let entry = Entry(proof.as_str());
+                _ = poetrie.ins(&entry);
+
+                let key = Key::new_from_str("semiliteral").unwrap();
+                let res = poetrie.suf(&key);
+                assert_eq!(Ok(proof), res);
+            }
+
+            #[test]
+            fn err() {
+                let poetrie = Poetrie::new();
+
+                let key = Key::new_from_str("semiliteral").unwrap();
+                let res = poetrie.suf(&key);
+                assert_eq!(Err(FindErr::EmptyTree), res);
+            }
+        }
+
         mod rem {
             use crate::{Entry, Poetrie};
 
@@ -864,7 +899,7 @@ mod tests_of_units {
         }
 
         mod find {
-            use crate::{Entry, FindRes, Poetrie, tests_of_units::rev_entry::RevEntry};
+            use crate::{Entry, FindErr, Poetrie, tests_of_units::rev_entry::RevEntry};
 
             #[test]
             fn basic_test() {
@@ -878,7 +913,7 @@ mod tests_of_units {
                 let key = &Entry("lyrics");
                 let find = poetrie.find(key, &mut 0);
 
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -893,7 +928,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(40, b_code);
-                assert_eq!(FindRes::Ok(String::from("s")), find);
+                assert_eq!(Ok(String::from("s")), find);
             }
 
             #[test]
@@ -909,7 +944,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(34, b_code);
-                assert_eq!(FindRes::Ok(String::from("s")), find);
+                assert_eq!(Ok(String::from("s")), find);
             }
 
             #[test]
@@ -925,7 +960,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(130, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -942,7 +977,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(130, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -956,7 +991,7 @@ mod tests_of_units {
                 let find = poetrie.find(key_entry, &mut b_code);
 
                 assert_eq!(18, b_code);
-                assert_eq!(FindRes::OnlyKeyMatches, find);
+                assert_eq!(Err(FindErr::OnlyKeyMatches), find);
             }
 
             #[test]
@@ -966,7 +1001,7 @@ mod tests_of_units {
                 let poetrie = Poetrie::new();
                 let find = poetrie.find(key, &mut 0);
 
-                assert_eq!(FindRes::EmptyTree, find);
+                assert_eq!(Err(FindErr::EmptyTree), find);
             }
 
             #[test]
@@ -979,7 +1014,7 @@ mod tests_of_units {
 
                 let find = poetrie.find(key, &mut 0);
 
-                assert_eq!(FindRes::NoJointSuffix, find);
+                assert_eq!(Err(FindErr::NoJointSuffix), find);
             }
 
             #[test]
@@ -993,7 +1028,7 @@ mod tests_of_units {
                 let find = poetrie.find(itself, &mut b_code);
 
                 assert_eq!(18, b_code);
-                assert_eq!(FindRes::OnlyKeyMatches, find);
+                assert_eq!(Err(FindErr::OnlyKeyMatches), find);
             }
 
             #[test]
@@ -1012,7 +1047,7 @@ mod tests_of_units {
                 let find = poetrie.find(&key.entry(), &mut b_code);
 
                 assert_eq!(130, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -1033,7 +1068,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(130, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -1054,7 +1089,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(34, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -1072,7 +1107,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(34, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -1092,7 +1127,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(40, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -1109,7 +1144,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(40, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -1129,7 +1164,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(642, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -1148,7 +1183,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(132, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -1165,7 +1200,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(132, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -1182,7 +1217,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(132, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -1200,7 +1235,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(642, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -1218,7 +1253,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(642, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -1239,7 +1274,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(264, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -1261,7 +1296,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(258, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -1285,7 +1320,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(132, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -1308,7 +1343,7 @@ mod tests_of_units {
                 let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(642, b_code);
-                assert_eq!(FindRes::Ok(proof), find);
+                assert_eq!(Ok(proof), find);
             }
 
             #[test]
@@ -1336,65 +1371,66 @@ mod tests_of_units {
                 let key = Entry("musics");
                 let proof = String::from("physics");
 
-                assert_eq!(FindRes::Ok(proof), poetrie.find(&key, &mut b_code));
+                assert_eq!(Ok(proof), poetrie.find(&key, &mut b_code));
                 assert_eq!(132, b_code);
 
                 b_code = 0;
                 let key = Entry("athletics");
                 let proof = String::from("aesthetics");
 
-                assert_eq!(
-                    FindRes::Ok(proof),
-                    poetrie.find(&key, &mut b_code),
-                    "{}",
-                    b_code
-                );
+                assert_eq!(Ok(proof), poetrie.find(&key, &mut b_code), "{}", b_code);
                 assert_eq!(642, b_code);
 
                 b_code = 0;
                 let key = Entry("aesthetics");
                 let proof = String::from("athletics");
 
-                assert_eq!(FindRes::Ok(proof), poetrie.find(&key, &mut b_code));
+                assert_eq!(Ok(proof), poetrie.find(&key, &mut b_code));
                 assert_eq!(642, b_code);
 
                 b_code = 0;
                 let key = Entry("epicalyx");
-                
-                assert_eq!(FindRes::NoJointSuffix, poetrie.find(&key, &mut b_code));
+
+                assert_eq!(Err(FindErr::NoJointSuffix), poetrie.find(&key, &mut b_code));
                 assert_eq!(0, b_code);
 
                 b_code = 0;
                 let key = RevEntry::new("documental");
                 let proof = RevEntry::new("documentalist").0;
 
-                assert_eq!(FindRes::Ok(proof), poetrie.find(&key.entry(), &mut b_code));
+                assert_eq!(Ok(proof), poetrie.find(&key.entry(), &mut b_code));
                 assert_eq!(130, b_code);
 
                 b_code = 0;
                 let key = RevEntry::new("documentalist");
                 let proof = RevEntry::new("document").0;
 
-                assert_eq!(FindRes::Ok(proof), poetrie.find(&key.entry(), &mut b_code));
+                assert_eq!(Ok(proof), poetrie.find(&key.entry(), &mut b_code));
                 assert_eq!(34, b_code);
 
                 b_code = 0;
                 let key = RevEntry::new("quadriceps");
                 let proof = String::from("q");
 
-                assert_eq!(FindRes::Ok(proof), poetrie.find(&key.entry(), &mut b_code));
+                assert_eq!(Ok(proof), poetrie.find(&key.entry(), &mut b_code));
                 assert_eq!(40, b_code);
 
                 b_code = 0;
                 let key = Entry("q");
 
-                assert_eq!(FindRes::OnlyKeyMatches, poetrie.find(&key, &mut b_code));
+                assert_eq!(
+                    Err(FindErr::OnlyKeyMatches),
+                    poetrie.find(&key, &mut b_code)
+                );
                 assert_eq!(18, b_code);
 
                 b_code = 0;
                 let key = Entry("epically");
 
-                assert_eq!(FindRes::OnlyKeyMatches, poetrie.find(&key, &mut b_code));
+                assert_eq!(
+                    Err(FindErr::OnlyKeyMatches),
+                    poetrie.find(&key, &mut b_code)
+                );
                 assert_eq!(18, b_code);
             }
         }

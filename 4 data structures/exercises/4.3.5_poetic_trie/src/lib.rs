@@ -403,7 +403,7 @@ enum TraRes {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-/// Various errors which can occur when searching common suffix. 
+/// Various errors which can occur when searching common suffix.
 pub enum FindErr {
     /// Key provided has only one match in tree, itself.
     OnlyKeyMatches,

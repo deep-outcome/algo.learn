@@ -15,8 +15,8 @@ use uc::UC;
 
 type Links = HashMap<char, Node>;
 
-fn ext(l: &mut Links, buff: &mut Vec<char>, o: &mut Vec<String>) {
-    for (k, n) in l.iter_mut() {
+fn ext(l: &Links, buff: &mut Vec<char>, o: &mut Vec<String>) {
+    for (k, n) in l.iter() {
         buff.push(*k);
 
         if n.entry {
@@ -24,7 +24,7 @@ fn ext(l: &mut Links, buff: &mut Vec<char>, o: &mut Vec<String>) {
             o.push(entry);
         }
 
-        if let Some(l) = n.links.as_mut() {
+        if let Some(l) = n.links.as_ref() {
             ext(l, buff, o);
         }
 
@@ -40,7 +40,7 @@ pub type Key<'a> = Entry<'a>;
 pub struct Entry<'a>(&'a str);
 
 impl<'a> Entry<'a> {
-    /// Constructor for `&str`.
+    /// Constructor for `Entry<'a>`.
     ///
     /// Return value is `None` for 0-length `str`.
     pub const fn new_from_str(entry: &'a str) -> Option<Self> {
@@ -76,7 +76,7 @@ pub struct Poetrie {
 
 const NULL: char = '\0';
 impl Poetrie {
-    /// `Poetrie` constructor.    
+    /// Use for `Poetrie` construction.    
     pub const fn new() -> Poetrie {
         Poetrie {
             root: Node::empty(),
@@ -129,7 +129,7 @@ impl Poetrie {
         return res;
     }
 
-    /// Removes entry from tree.
+    /// Use to remove entry from tree.
     ///
     /// Return value is `true` if entry was removed, `false` if it was not present.
     pub fn rem(&mut self, entry: &Entry) -> bool {
@@ -153,7 +153,7 @@ impl Poetrie {
     fn rem_actual(&mut self, #[cfg(test)] esc_code: &mut usize) {
         let mut trace = self.btr.iter();
         let en_duo = unsafe { trace.next_back().unwrap_unchecked() };
-        let mut node = unsafe { en_duo.1.as_mut() }.unwrap();
+        let mut node = unsafe { en_duo.1.as_mut().unwrap_unchecked() };
 
         node.entry = false;
         if node.links() {
@@ -166,11 +166,11 @@ impl Poetrie {
         }
 
         // subnode entry
-        let mut sn_entry = en_duo.0;
+        let mut sn_entry = &en_duo.0;
         while let Some((c, n)) = trace.next_back() {
-            node = unsafe { n.as_mut() }.unwrap();
-            let links = node.links.as_mut().unwrap();
-            _ = links.remove(&sn_entry);
+            node = unsafe { n.as_mut().unwrap_unchecked() };
+            let links = unsafe { node.links.as_mut().unwrap_unchecked() };
+            _ = links.remove(sn_entry);
 
             if links.len() > 0 {
                 #[cfg(test)]
@@ -190,7 +190,7 @@ impl Poetrie {
                 break;
             }
 
-            sn_entry = *c;
+            sn_entry = c;
         }
 
         node.links = None;
@@ -201,6 +201,8 @@ impl Poetrie {
             }
         }
     }
+    
+    // CONTINUE FROM HERE
 
     // case-sensitive which is not senseful
     fn find(&self, key: &Key, #[cfg(test)] b_code: &mut usize) -> Result<String, FindErr> {
@@ -386,7 +388,7 @@ impl Poetrie {
         // capacity is prebuffered to 1000
         let mut res = Vec::with_capacity(1000);
 
-        let rl = unsafe { self.root.links.as_mut().unwrap_unchecked() };
+        let rl = unsafe { self.root.links.as_ref().unwrap_unchecked() };
         ext(rl, &mut buff, &mut res);
 
         Some(res)

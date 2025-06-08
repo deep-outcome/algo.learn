@@ -70,6 +70,7 @@ pub struct Poetrie {
     root: Node,
     // backtrace buff
     btr: UC<Vec<(char, *mut Node)>>,
+    buf: UC<Vec<char>>,
     // entries count
     cnt: usize,
 }
@@ -81,6 +82,7 @@ impl Poetrie {
         Poetrie {
             root: Node::empty(),
             btr: UC::new(Vec::new()),
+            buf: UC::new(Vec::new()),
             cnt: 0,
         }
     }
@@ -126,6 +128,9 @@ impl Poetrie {
             #[cfg(test)]
             &mut 0,
         );
+
+        self.buf.get_mut().clear();
+
         return res;
     }
 
@@ -201,8 +206,6 @@ impl Poetrie {
             }
         }
     }
-    
-    // CONTINUE FROM HERE
 
     // case-sensitive which is not senseful
     fn find(&self, key: &Key, #[cfg(test)] b_code: &mut usize) -> Result<String, FindErr> {
@@ -210,7 +213,7 @@ impl Poetrie {
         let mut c;
 
         // match
-        let mut buff = Vec::with_capacity(1000);
+        let buff = self.buf.get_mut();
 
         // operative node
         let mut op_node = &self.root;
@@ -307,7 +310,7 @@ impl Poetrie {
                 } else {
                     #[cfg(test)]
                     set_bcode(32, b_code);
-                    return ok(&buff[..bak_len]);
+                    ok(&buff[..bak_len])
                 };
             }
         }
@@ -769,6 +772,18 @@ mod tests_of_units {
                 let key = Key::new_from_str("semiliteral").unwrap();
                 let res = poetrie.suf(&key);
                 assert_eq!(Err(FindErr::EmptyTree), res);
+            }
+
+            #[test]
+            fn buf_clearing() {
+                let mut poetrie = Poetrie::new();
+
+                let key_entry = Entry("quadriliteral");
+                _ = poetrie.ins(&key_entry);
+
+                let res = poetrie.suf(&key_entry);
+                assert_eq!(Err(FindErr::OnlyKeyMatches), res);
+                assert_eq!(0, poetrie.buf.len());
             }
         }
 
@@ -1369,71 +1384,52 @@ mod tests_of_units {
                     _ = poetrie.ins(&Entry(e));
                 }
 
-                let mut b_code = 0;
                 let key = Entry("musics");
                 let proof = String::from("physics");
+                assert(Ok(proof), 132, key, &poetrie);
 
-                assert_eq!(Ok(proof), poetrie.find(&key, &mut b_code));
-                assert_eq!(132, b_code);
-
-                b_code = 0;
                 let key = Entry("athletics");
                 let proof = String::from("aesthetics");
+                assert(Ok(proof), 642, key, &poetrie);
 
-                assert_eq!(Ok(proof), poetrie.find(&key, &mut b_code), "{}", b_code);
-                assert_eq!(642, b_code);
-
-                b_code = 0;
                 let key = Entry("aesthetics");
                 let proof = String::from("athletics");
 
-                assert_eq!(Ok(proof), poetrie.find(&key, &mut b_code));
-                assert_eq!(642, b_code);
+                assert(Ok(proof), 642, key, &poetrie);
 
-                b_code = 0;
                 let key = Entry("epicalyx");
+                assert(Err(FindErr::NoJointSuffix), 0, key, &poetrie);
 
-                assert_eq!(Err(FindErr::NoJointSuffix), poetrie.find(&key, &mut b_code));
-                assert_eq!(0, b_code);
-
-                b_code = 0;
                 let key = RevEntry::new("documental");
                 let proof = RevEntry::new("documentalist").0;
+                assert(Ok(proof), 130, key.entry(), &poetrie);
 
-                assert_eq!(Ok(proof), poetrie.find(&key.entry(), &mut b_code));
-                assert_eq!(130, b_code);
-
-                b_code = 0;
                 let key = RevEntry::new("documentalist");
                 let proof = RevEntry::new("document").0;
+                assert(Ok(proof), 34, key.entry(), &poetrie);
 
-                assert_eq!(Ok(proof), poetrie.find(&key.entry(), &mut b_code));
-                assert_eq!(34, b_code);
-
-                b_code = 0;
                 let key = RevEntry::new("quadriceps");
                 let proof = String::from("q");
+                assert(Ok(proof), 40, key.entry(), &poetrie);
 
-                assert_eq!(Ok(proof), poetrie.find(&key.entry(), &mut b_code));
-                assert_eq!(40, b_code);
-
-                b_code = 0;
                 let key = Entry("q");
+                assert(Err(FindErr::OnlyKeyMatches), 18, key, &poetrie);
 
-                assert_eq!(
-                    Err(FindErr::OnlyKeyMatches),
-                    poetrie.find(&key, &mut b_code)
-                );
-                assert_eq!(18, b_code);
-
-                b_code = 0;
                 let key = Entry("epically");
+                assert(Err(FindErr::OnlyKeyMatches), 18, key, &poetrie);
 
-                assert_eq!(
-                    Err(FindErr::OnlyKeyMatches),
-                    poetrie.find(&key, &mut b_code)
-                );
-                assert_eq!(18, b_code);
+                fn assert(
+                    res: Result<String, FindErr>,
+                    code: usize,
+                    key: crate::Key,
+                    poetrie: &Poetrie,
+                ) {
+                    let mut b_code = 0;
+                    assert_eq!(res, poetrie.find(&key, &mut b_code));
+                    assert_eq!(code, b_code);
+
+                    poetrie.buf.get_mut().clear();
+                }
             }
         }
 

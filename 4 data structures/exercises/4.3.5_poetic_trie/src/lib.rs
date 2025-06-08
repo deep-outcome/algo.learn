@@ -70,6 +70,7 @@ pub struct Poetrie {
     root: Node,
     // backtrace buff
     btr: UC<Vec<(char, *mut Node)>>,
+    // sufix-word buffer
     buf: UC<Vec<char>>,
     // entries count
     cnt: usize,
@@ -89,7 +90,7 @@ impl Poetrie {
 
     /// Use for entry insertions into tree.
     ///
-    /// Return value is `true` if `entry` was inserted into tree,
+    /// Return value is `true` if entry was inserted into tree,
     /// `false` if it was present already.
     pub fn ins(&mut self, entry: &Entry) -> bool {
         let mut node = &mut self.root;
@@ -109,9 +110,9 @@ impl Poetrie {
         }
     }
 
-    /// Use to verify `entry` presence in tree.
+    /// Use to verify entry presence in tree.
     ///
-    /// Return value is `true` if `entry` is present in tree, `false` otherwise.
+    /// Return value is `true` if entry is present in tree, `false` otherwise.
     pub fn en(&self, entry: &Entry) -> bool {
         let res = self.track(entry, false);
 
@@ -456,7 +457,7 @@ impl Debug for Node {
         let links = if self.links() { "Some" } else { "None" };
 
         f.write_fmt(format_args!(
-            "Node {{\n  links: {}\n  entry: {:?}\n}}",
+            "Node {{\n  links: {}\n  entry: {}\n}}",
             links, self.entry
         ))
     }
@@ -507,7 +508,7 @@ mod tests_of_units {
             let mut buff = Vec::new();
             let mut test = Vec::new();
 
-            let links = unsafe { poetrie.root.links.as_mut().unwrap_unchecked() };
+            let links = poetrie.root.links.as_mut().unwrap();
             ext(links, &mut buff, &mut test);
 
             let proof = vec![String::from("a"), String::from("z")];
@@ -542,7 +543,7 @@ mod tests_of_units {
             let mut buff = Vec::new();
             let mut test = Vec::new();
 
-            let links = unsafe { poetrie.root.links.as_mut().unwrap_unchecked() };
+            let links = poetrie.root.links.as_mut().unwrap();
             ext(links, &mut buff, &mut test);
 
             assert_eq!(entries.len(), test.len());
@@ -574,7 +575,7 @@ mod tests_of_units {
             let mut buff = Vec::new();
             let mut test = Vec::new();
 
-            let links = unsafe { poetrie.root.links.as_mut().unwrap_unchecked() };
+            let links = poetrie.root.links.as_mut().unwrap();
             ext(links, &mut buff, &mut test);
 
             assert_eq!(paths.len(), test.len());
@@ -586,13 +587,14 @@ mod tests_of_units {
 
     mod entry {
         use crate::Entry;
+        use std::ops::Deref;
 
         #[test]
         fn new_from_str() {
             let entry = "entry";
             let test = Entry::new_from_str(entry);
             assert_eq!(true, test.is_some());
-            assert_eq!(entry.as_ptr() as usize, test.unwrap().as_ptr() as usize);
+            assert_eq!(entry.as_ptr() as usize, test.unwrap().0.as_ptr() as usize);
         }
 
         #[test]
@@ -600,6 +602,13 @@ mod tests_of_units {
             let entry = "";
             let test = Entry::new_from_str(entry);
             assert_eq!(None, test);
+        }
+
+        #[test]
+        fn deref() {
+            let entry = "entry";
+            let test = Entry(entry);
+            assert_eq!(entry, test.deref());
         }
     }
 
@@ -614,6 +623,14 @@ mod tests_of_units {
             assert_eq!(false, root.entry);
             assert_eq!(None, root.links);
             assert_eq!(0, poetrie.cnt);
+
+            let btr = poetrie.btr;
+            assert_eq!(0, btr.len());
+            assert_eq!(0, btr.capacity());
+
+            let buf = poetrie.buf;
+            assert_eq!(0, buf.len());
+            assert_eq!(0, buf.capacity());
         }
 
         mod ins {
@@ -715,6 +732,7 @@ mod tests_of_units {
                         assert_eq!(true, node.entry)
                     } else {
                         assert_eq!(true, node.links());
+                        assert_eq!(false, node.entry);
                         links = node.links.as_ref().unwrap();
                     }
                 }
@@ -750,7 +768,7 @@ mod tests_of_units {
         }
 
         mod suf {
-            use crate::{Entry, FindErr, Key, Poetrie};
+            use crate::{Entry, FindErr, Poetrie};
 
             #[test]
             fn basic_test() {
@@ -760,7 +778,7 @@ mod tests_of_units {
                 let entry = Entry(proof.as_str());
                 _ = poetrie.ins(&entry);
 
-                let key = Key::new_from_str("semiliteral").unwrap();
+                let key = Entry("semiliteral");
                 let res = poetrie.suf(&key);
                 assert_eq!(Ok(proof), res);
             }
@@ -769,7 +787,7 @@ mod tests_of_units {
             fn err() {
                 let poetrie = Poetrie::new();
 
-                let key = Key::new_from_str("semiliteral").unwrap();
+                let key = Entry("semiliteral");
                 let res = poetrie.suf(&key);
                 assert_eq!(Err(FindErr::EmptyTree), res);
             }
@@ -784,6 +802,7 @@ mod tests_of_units {
                 let res = poetrie.suf(&key_entry);
                 assert_eq!(Err(FindErr::OnlyKeyMatches), res);
                 assert_eq!(0, poetrie.buf.len());
+                assert_eq!(true, poetrie.buf.capacity() > 0);
             }
         }
 
@@ -800,6 +819,7 @@ mod tests_of_units {
 
                 assert_eq!(false, poetrie.rem(unknown));
                 assert_eq!(0, poetrie.btr.len());
+                assert_eq!(true, poetrie.btr.capacity() > 0);
                 assert_eq!(1, poetrie.cnt);
 
                 assert_eq!(true, poetrie.rem(known));
@@ -808,6 +828,8 @@ mod tests_of_units {
                 assert_eq!(false, poetrie.en(known));
             }
         }
+
+        // continue from here
 
         // node in path to entry being deleted cannot
         // be deleted if and only if participates in

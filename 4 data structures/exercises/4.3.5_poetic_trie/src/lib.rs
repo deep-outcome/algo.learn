@@ -370,14 +370,14 @@ impl Poetrie {
         }
     }
 
-    /// Return value is count of entries in tree.
+    /// Use to obtain count of entries in tree.
     pub const fn ct(&self) -> usize {
         self.cnt
     }
 
-    /// Extracts entries from tree and leaves tree intact.
+    /// Use to extract entries from tree.
     ///
-    /// Extraction is alphabetically unordered.
+    /// Extraction is alphabetically unordered. Leaves tree intact.
     ///
     /// Return value is `None` for empty `Poetrie`.    
     pub fn ext(&mut self) -> Option<Vec<String>> {
@@ -389,7 +389,7 @@ impl Poetrie {
         let mut buff = Vec::with_capacity(1000);
 
         // capacity is prebuffered to 1000
-        let mut res = Vec::with_capacity(1000);
+        let mut res = Vec::with_capacity(5000);
 
         let rl = unsafe { self.root.links.as_ref().unwrap_unchecked() };
         ext(rl, &mut buff, &mut res);
@@ -456,7 +456,7 @@ impl Debug for Node {
         let links = if self.links() { "Some" } else { "None" };
 
         f.write_fmt(format_args!(
-            "Node {{\n  links: {:?}\n  entry: {:?}\n}}",
+            "Node {{\n  links: {}\n  entry: {:?}\n}}",
             links, self.entry
         ))
     }

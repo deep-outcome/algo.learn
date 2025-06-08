@@ -248,11 +248,11 @@ impl Poetrie {
             };
 
             if let Some(l) = op_node.links.as_ref() {
-                if l.len() > 1 {
-                    branching = Some((l, (buff.len(), c)));
-                }
-
                 if let Some(n) = l.get(&c) {
+                    if l.len() > 1 {
+                        branching = Some((l, (buff.len(), c)));
+                    }
+
                     buff.push(c);
                     op_node = n;
 
@@ -1128,6 +1128,24 @@ mod tests_of_units {
             }
 
             #[test]
+            fn only_subentry_is_possible3() {
+                let proof = String::from("Xconundrum");
+                let entry = Entry(proof.as_str());
+
+                let key = &Entry("YXconundrum");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(&entry);
+                _ = poetrie.ins(&key);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(34, b_code);
+                assert_eq!(Ok(proof), find);
+            }
+
+            #[test]
             fn only_subsuffix_is_possible1() {
                 let subentry = RevEntry::new("document");
                 let entry = RevEntry::new("documental");
@@ -1153,6 +1171,23 @@ mod tests_of_units {
                 let entry = Entry(proof.as_str());
 
                 let key = &Entry("conundrum");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(&entry);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(40, b_code);
+                assert_eq!(Ok(proof), find);
+            }
+
+            #[test]
+            fn only_subsuffix_is_possible3() {
+                let proof = String::from("Xconundrum");
+                let entry = Entry(proof.as_str());
+
+                let key = &Entry("YXconundrum");
 
                 let mut poetrie = Poetrie::new();
                 _ = poetrie.ins(&entry);
@@ -1274,6 +1309,41 @@ mod tests_of_units {
             }
 
             #[test]
+            fn key_partially_shared_suffix_3a() {
+                let proof = String::from("X-lyrics");
+                let entry = &Entry(proof.as_str());
+
+                let key = &Entry("A-lyrics");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
+                _ = poetrie.ins(key);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(642, b_code);
+                assert_eq!(Ok(proof), find);
+            }
+
+            #[test]
+            fn key_partially_shared_suffix_3b() {
+                let proof = String::from("X-lyrics");
+                let entry = &Entry(proof.as_str());
+
+                let key = &Entry("A-lyrics");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(132, b_code);
+                assert_eq!(Ok(proof), find);
+            }
+
+            #[test]
             fn prefer_suffix_entry_when_longer_share_1() {
                 // branching entry
                 let bra_ent = RevEntry::new("documentarian");
@@ -1317,8 +1387,6 @@ mod tests_of_units {
             }
 
             #[test]
-            // redundant, kept for parity
-            // same as key_partially_shared_suffix_1a
             fn prefer_branching_entry_when_at_least_same_share_1() {
                 let bra_ent = RevEntry::new("documented");
                 let proof = bra_ent.0.clone();

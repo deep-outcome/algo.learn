@@ -868,6 +868,23 @@ mod tests_of_units {
             #[test]
             fn one_letter_b() {
                 let entry1 = &Entry("a");
+                let entry2 = &Entry("b");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry1);
+                _ = poetrie.ins(entry2);
+                _ = poetrie.track(entry1, true);
+
+                let mut esc_code = 0;
+                poetrie.rem_actual(&mut esc_code);
+                assert_eq!(false, poetrie.en(entry1));
+                assert_eq!(true, poetrie.en(entry2));
+                assert_eq!(6, esc_code);
+            }
+
+            #[test]
+            fn one_letter_c() {
+                let entry1 = &Entry("a");
                 let entry2 = RevEntry::new("al");
                 let entry2 = &entry2.entry();
 

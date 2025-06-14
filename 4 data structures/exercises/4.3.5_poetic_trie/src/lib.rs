@@ -164,9 +164,7 @@ impl Poetrie {
         node.entry = false;
         if node.links() {
             #[cfg(test)]
-            {
-                *esc_code = 1;
-            }
+            set_code(1, esc_code);
 
             return;
         }
@@ -178,20 +176,19 @@ impl Poetrie {
             let links = unsafe { node.links.as_mut().unwrap_unchecked() };
             _ = links.remove(sn_entry);
 
+            #[cfg(test)]
+            set_code(2, esc_code);
+
             if links.len() > 0 {
                 #[cfg(test)]
-                {
-                    *esc_code = 2;
-                }
+                set_code(4, esc_code);
 
                 return;
             }
 
             if node.entry {
                 #[cfg(test)]
-                {
-                    *esc_code = 3;
-                }
+                set_code(8, esc_code);
 
                 break;
             }
@@ -201,10 +198,14 @@ impl Poetrie {
 
         node.links = None;
         #[cfg(test)]
-        {
-            if *esc_code != 3 {
-                *esc_code = 4;
-            }
+        if *esc_code != (2 | 8) {
+            set_code(16, esc_code);
+        }
+
+        #[cfg(test)]
+        fn set_code(c: usize, esc_code: &mut usize) {
+            let code = *esc_code;
+            *esc_code = code | c;
         }
     }
 
@@ -829,15 +830,13 @@ mod tests_of_units {
             }
         }
 
-        // continue from here
-
         // node in path to entry being deleted cannot
         // be deleted if and only if participates in
         // path to another entry where path len varies 0…m
         mod rem_actual {
 
             use super::super::rev_entry::RevEntry;
-            use crate::Poetrie;
+            use crate::{Entry, Poetrie};
 
             #[test]
             fn basic_test() {
@@ -848,8 +847,40 @@ mod tests_of_units {
                 _ = poetrie.ins(entry);
                 _ = poetrie.track(entry, true);
 
-                _ = poetrie.rem_actual(&mut 0);
+                poetrie.rem_actual(&mut 0);
                 assert_eq!(false, poetrie.en(entry));
+            }
+
+            #[test]
+            fn one_letter_a() {
+                let entry = &Entry("a");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry);
+                _ = poetrie.track(entry, true);
+
+                let mut esc_code = 0;
+                poetrie.rem_actual(&mut esc_code);
+                assert_eq!(false, poetrie.en(entry));
+                assert_eq!(18, esc_code);
+            }
+
+            #[test]
+            fn one_letter_b() {
+                let entry1 = &Entry("a");
+                let entry2 = RevEntry::new("al");
+                let entry2 = &entry2.entry();
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry1);
+                _ = poetrie.ins(entry2);
+                _ = poetrie.track(entry1, true);
+
+                let mut esc_code = 0;
+                poetrie.rem_actual(&mut esc_code);
+                assert_eq!(false, poetrie.en(entry1));
+                assert_eq!(true, poetrie.en(entry2));
+                assert_eq!(1, esc_code);
             }
 
             #[test]
@@ -867,7 +898,7 @@ mod tests_of_units {
                 let mut esc_code = 0;
                 _ = poetrie.track(inner, true);
 
-                _ = poetrie.rem_actual(&mut esc_code);
+                poetrie.rem_actual(&mut esc_code);
                 assert_eq!(1, esc_code);
 
                 assert_eq!(false, poetrie.en(inner));
@@ -883,8 +914,8 @@ mod tests_of_units {
 
                 let mut esc_code = 0;
                 _ = poetrie.track(entry, true);
-                _ = poetrie.rem_actual(&mut esc_code);
-                assert_eq!(4, esc_code);
+                poetrie.rem_actual(&mut esc_code);
+                assert_eq!(18, esc_code);
 
                 assert_eq!(false, poetrie.en(entry));
                 assert_eq!(None, poetrie.root.links);
@@ -903,8 +934,8 @@ mod tests_of_units {
 
                 let mut esc_code = 0;
                 _ = poetrie.track(keyword, true);
-                _ = poetrie.rem_actual(&mut esc_code);
-                assert_eq!(2, esc_code);
+                poetrie.rem_actual(&mut esc_code);
+                assert_eq!(6, esc_code);
 
                 assert_eq!(false, poetrie.en(keyword));
                 assert_eq!(true, poetrie.en(dissimilar));
@@ -922,8 +953,8 @@ mod tests_of_units {
 
                 let mut esc_code = 0;
                 _ = poetrie.track(under, true);
-                _ = poetrie.rem_actual(&mut esc_code);
-                assert_eq!(3, esc_code);
+                poetrie.rem_actual(&mut esc_code);
+                assert_eq!(10, esc_code);
 
                 assert_eq!(false, poetrie.en(under));
                 assert_eq!(true, poetrie.en(above));

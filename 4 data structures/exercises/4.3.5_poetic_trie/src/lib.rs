@@ -272,13 +272,15 @@ impl Poetrie {
         }
 
         // CONTINUATION
-        // Is possible:
-        // - key is suffix to some entry
-        // - key has partially shared suffix with some entry
+        // A) Is possible (key covers partially some entry):
+        // - (1) Key is suffix to some entry.
+        // - (2) Key has partially shared suffix with some entry.
         //
-        // Not possible:
-        // - key is entry and no suffix to other entry
-        // - part of key suffix is other entry
+        // B) Not possible (key just convers fully some entry):
+        // - (1) Key is entry and no suffix to other entry.
+        // - (2) Part of key suffix is other entry.
+        //
+        // Note: When A then A can intersect with B, when B then B only.
         if !op_node.links.is_some() {
             if let Some((blinks, (blen, skip_c))) = branching {
                 // just subentry with longer shared suffix

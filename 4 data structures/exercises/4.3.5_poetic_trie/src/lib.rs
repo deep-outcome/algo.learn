@@ -281,8 +281,8 @@ impl Poetrie {
         // - part of key suffix is other entry
         if !op_node.links.is_some() {
             if let Some((blinks, (blen, skip_c))) = branching {
-                // subentry with longer shared suffix must be
-                // prioritized over branch
+                // just subentry with longer shared suffix
+                // must be prioritized over branch
                 if bak_len > blen {
                     #[cfg(test)]
                     set_bcode(256, b_code);
@@ -295,14 +295,14 @@ impl Poetrie {
                 buff.truncate(blen);
 
                 // imp: possibly randomize somehow node selection
-                for (test_c, n) in blinks.iter() {
-                    let test_c = *test_c;
+                for (&test_c, n) in blinks.iter() {
                     if test_c == skip_c {
                         continue;
                     }
 
                     buff.push(test_c);
                     op_node = n;
+                    break;
                 }
             } else {
                 return if bak_len == 0 {
@@ -316,8 +316,7 @@ impl Poetrie {
                 };
             }
         }
-
-        // extend or connect branch now, if possible
+        
         while let Some(l) = op_node.links.as_ref() {
             // imp: possibly randomize hashmap key selection
             let (c, n) = unsafe { l.iter().next().unwrap_unchecked() };
@@ -1411,6 +1410,58 @@ mod tests_of_units {
 
                 assert_eq!(132, b_code);
                 assert_eq!(Ok(proof), find);
+            }
+
+            #[test]
+            fn key_partially_shared_suffix_4a() {
+                let proof_1 = String::from("lyrics");
+                let entry_1 = &Entry(proof_1.as_str());
+
+                let proof_2 = String::from("ethics");
+                let entry_2 = &Entry(proof_2.as_str());
+
+                let key = &Entry("athletics");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry_1);
+                _ = poetrie.ins(entry_2);
+                
+                _ = poetrie.ins(key);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(642, b_code);
+
+                let equal = Ok(proof_1) == find || Ok(proof_2) == find;
+
+                assert_eq!(true, equal);
+            }
+
+            #[test]
+            fn key_partially_shared_suffix_4b() {
+                let proof_1 = String::from("lyrics");
+                let entry_1 = &Entry(proof_1.as_str());
+
+                let proof_2 = String::from("emphasis");
+                let entry_2 = &Entry(proof_2.as_str());
+
+                let key = &Entry("carboniferous");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(entry_1);
+                _ = poetrie.ins(entry_2);
+
+                _ = poetrie.ins(key);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                assert_eq!(642, b_code);
+
+                let equal = Ok(proof_1) == find || Ok(proof_2) == find;
+
+                assert_eq!(true, equal);
             }
 
             #[test]

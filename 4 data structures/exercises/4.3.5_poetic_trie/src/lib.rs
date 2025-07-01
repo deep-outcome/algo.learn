@@ -113,7 +113,7 @@ impl Poetrie {
     /// Use to verify entry presence in tree.
     ///
     /// Return value is `true` if entry is present in tree, `false` otherwise.
-    pub fn en(&self, entry: &Entry) -> bool {
+    pub fn en(&self, entry: &Key) -> bool {
         let res = self.track(entry, false);
 
         TraRes::Ok == res
@@ -318,7 +318,7 @@ impl Poetrie {
                 };
             }
         }
-        
+
         while let Some(l) = op_node.links.as_ref() {
             // imp: possibly randomize hashmap key selection
             let (c, n) = unsafe { l.iter().next().unwrap_unchecked() };
@@ -341,12 +341,12 @@ impl Poetrie {
         }
     }
 
-    fn track(&self, entry: &Entry, trace: bool) -> TraRes {
+    fn track(&self, entry: &Key, trace: bool) -> TraRes {
         let mut node = &self.root;
-        let tr = self.btr.get_mut();
+        let btr = self.btr.get_mut();
 
         if trace {
-            tr.push((NULL, node.to_mut_ptr()));
+            btr.push((NULL, node.to_mut_ptr()));
         }
 
         let mut chars = entry.chars();
@@ -354,7 +354,7 @@ impl Poetrie {
             if let Some(l) = node.links.as_ref() {
                 if let Some(n) = l.get(&c) {
                     if trace {
-                        tr.push((c, n.to_mut_ptr()));
+                        btr.push((c, n.to_mut_ptr()));
                     }
 
                     node = n;
@@ -391,7 +391,7 @@ impl Poetrie {
         // capacity is prebuffered to 1000
         let mut buff = Vec::with_capacity(1000);
 
-        // capacity is prebuffered to 1000
+        // capacity is prebuffered to 5000
         let mut res = Vec::with_capacity(5000);
 
         let rl = unsafe { self.root.links.as_ref().unwrap_unchecked() };
@@ -1427,7 +1427,7 @@ mod tests_of_units {
                 let mut poetrie = Poetrie::new();
                 _ = poetrie.ins(entry_1);
                 _ = poetrie.ins(entry_2);
-                
+
                 _ = poetrie.ins(key);
 
                 let mut b_code = 0;
@@ -1585,7 +1585,6 @@ mod tests_of_units {
 
                 let key = Entry("aesthetics");
                 let proof = String::from("athletics");
-
                 assert(Ok(proof), 642, key, &poetrie);
 
                 let key = Entry("epicalyx");
@@ -1640,20 +1639,25 @@ mod tests_of_units {
                     _ = poetrie.ins(&e.entry());
                 }
 
-                _ = poetrie.track(&entries[2].entry(), true);
+                let keyword_e = &entries[2].entry();
+                _ = poetrie.track(keyword_e, true);
 
-                let trace = poetrie.btr;
+                let trace = &poetrie.btr;
                 let proof = format!("{}{}", NULL, keyword);
                 for (ix, c) in proof.chars().enumerate() {
-                    let d = trace[ix];
-                    assert_eq!(c, d.0, "{ix}");
+                    let duo = trace[ix];
+                    assert_eq!(c, duo.0, "{ix}");
                 }
 
-                for e in entries {
+                for e in entries.iter() {
                     let (c, node) = trace[e.len()];
                     let node = unsafe { node.as_ref() }.unwrap();
-                    assert_eq!(true, node.entry, "c: {c}, e: {}", *e);
+                    assert_eq!(true, node.entry, "c: {c}, e: {}", **e);
                 }
+
+                poetrie.btr.get_mut().clear();
+                _ = poetrie.track(keyword_e, false);
+                assert_eq!(0, trace.len());
             }
 
             #[test]
@@ -1745,7 +1749,11 @@ mod tests_of_units {
                 ext.sort();
                 assert_eq!(proof, ext);
 
-                assert_eq!(true, ext.capacity() >= 1000);
+                const CAP: usize = 5000;
+                let cap = ext.capacity();
+
+                assert_eq!(true, cap >= CAP);
+                assert_eq!(true, cap < CAP * 2);
 
                 for e in entries.clone() {
                     assert_eq!(true, poetrie.en(&e));
@@ -1765,6 +1773,7 @@ mod tests_of_units {
     mod node {
 
         use crate::{Links, Node};
+        use std::ptr::addr_of;
 
         #[test]
         fn links() {
@@ -1786,7 +1795,7 @@ mod tests_of_units {
         #[test]
         fn to_mut_ptr() {
             let n = Node::empty();
-            let n_add = &n as *const Node as usize;
+            let n_add = addr_of!(n) as usize;
             assert_eq!(n_add, n.to_mut_ptr() as usize);
         }
     }

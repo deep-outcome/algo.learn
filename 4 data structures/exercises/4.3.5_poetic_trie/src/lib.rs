@@ -417,7 +417,7 @@ pub enum FindErr {
     OnlyKeyMatches,
     /// Tree is empty.
     EmptyTree,
-    /// No etry shares any sufix with key.
+    /// No entry shares any sufix with key.
     NoJointSuffix,
 }
 

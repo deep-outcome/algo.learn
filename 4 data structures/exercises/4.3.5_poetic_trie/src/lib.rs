@@ -237,19 +237,20 @@ impl Poetrie {
 
         // track key as much as possible first
         'track: loop {
-            if let Some(next_c) = chars.next_back() {
-                if op_node.entry {
-                    bak_len = buff.len();
-                }
-
-                c = next_c;
-            } else {
+            let next_c = chars.next_back();
+            if next_c.is_none() {
                 #[cfg(test)]
                 set_bcode(2, b_code);
                 break 'track;
-            };
+            }
+
+            if op_node.entry {
+                bak_len = buff.len();
+            }
 
             if let Some(l) = op_node.links.as_ref() {
+                c = unsafe { next_c.unwrap_unchecked() };
+
                 if let Some(n) = l.get(&c) {
                     if l.len() > 1 {
                         branching = Some((l, (buff.len(), c)));
@@ -281,7 +282,7 @@ impl Poetrie {
         // - (2) Part of key suffix is other entry.
         //
         // Note: When A then A can intersect with B, when B then B only.
-        if !op_node.links.is_some() {
+        if op_node.links.is_none() {
             if let Some((blinks, (blen, skip_c))) = branching {
                 // just subentry with longer shared suffix
                 // must be prioritized over branch

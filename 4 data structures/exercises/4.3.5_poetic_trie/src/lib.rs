@@ -211,23 +211,9 @@ impl Poetrie {
 
     // case-sensitive which is not senseful
     fn find(&self, key: &Key, #[cfg(test)] b_code: &mut usize) -> Result<String, FindErr> {
-        let mut chars = key.chars();
-        let mut c;
-
-        // match
-        let buff = self.buf.get_mut();
-
         // operative node
         let mut op_node = &self.root;
-        if let Some(l) = op_node.links.as_ref() {
-            c = unsafe { chars.next_back().unwrap_unchecked() };
-            if let Some(n) = l.get(&c) {
-                op_node = n;
-                buff.push(c)
-            } else {
-                return Err(FindErr::NoJointSuffix);
-            }
-        } else {
+        if op_node.links.is_none() {
             return Err(FindErr::EmptyTree);
         }
 
@@ -235,6 +221,10 @@ impl Poetrie {
         let mut branching = None;
         let mut bak_len = 0;
 
+        // match
+        let buff = self.buf.get_mut();
+
+        let mut chars = key.chars();
         // track key as much as possible first
         'track: loop {
             let next_c = chars.next_back();
@@ -249,7 +239,7 @@ impl Poetrie {
             }
 
             if let Some(l) = op_node.links.as_ref() {
-                c = unsafe { next_c.unwrap_unchecked() };
+                let c = unsafe { next_c.unwrap_unchecked() };
 
                 if let Some(n) = l.get(&c) {
                     if l.len() > 1 {
@@ -272,6 +262,10 @@ impl Poetrie {
             break 'track;
         }
 
+        if buff.len() == 0 {
+            return Err(FindErr::NoJointSuffix);
+        }
+
         // CONTINUATION
         // A) Is possible (key covers partially some entry):
         // - (1) Key is suffix to some entry.
@@ -283,31 +277,37 @@ impl Poetrie {
         //
         // Note: When A then A can intersect with B, when B then B only.
         if op_node.links.is_none() {
+            let mut process_sube = true;
             if let Some((blinks, (blen, skip_c))) = branching {
-                // just subentry with longer shared suffix
-                // must be prioritized over branch
-                if bak_len > blen {
-                    #[cfg(test)]
-                    set_bcode(256, b_code);
-                    return ok(&buff[..bak_len]);
-                }
-
-                #[cfg(test)]
-                set_bcode(512, b_code);
-
-                buff.truncate(blen);
-
-                // imp: possibly randomize somehow node selection
-                for (&test_c, n) in blinks.iter() {
-                    if test_c == skip_c {
-                        continue;
+                if blen > 0 {
+                    // just subentry with longer shared suffix
+                    // must be prioritized over branch
+                    if bak_len > blen {
+                        #[cfg(test)]
+                        set_bcode(256, b_code);
+                        return ok(&buff[..bak_len]);
                     }
 
-                    buff.push(test_c);
-                    op_node = n;
-                    break;
+                    #[cfg(test)]
+                    set_bcode(512, b_code);
+
+                    buff.truncate(blen);
+                    process_sube = false;
+
+                    // imp: possibly randomize somehow node selection
+                    for (&test_c, n) in blinks.iter() {
+                        if test_c == skip_c {
+                            continue;
+                        }
+
+                        buff.push(test_c);
+                        op_node = n;
+                        break;
+                    }
                 }
-            } else {
+            }
+
+            if process_sube {
                 return if bak_len == 0 {
                     #[cfg(test)]
                     set_bcode(16, b_code);
@@ -1088,7 +1088,10 @@ mod tests_of_units {
                 let key = &Entry("lyrics");
 
                 let poetrie = Poetrie::new();
-                let find = poetrie.find(key, &mut 0);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+                assert_eq!(0, b_code);
 
                 assert_eq!(Err(FindErr::EmptyTree), find);
             }
@@ -1101,9 +1104,11 @@ mod tests_of_units {
                 let mut poetrie = Poetrie::new();
                 _ = poetrie.ins(entry);
 
-                let find = poetrie.find(key, &mut 0);
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
 
                 assert_eq!(Err(FindErr::NoJointSuffix), find);
+                assert_eq!(4, b_code);
             }
 
             #[test]
@@ -1272,7 +1277,7 @@ mod tests_of_units {
             }
 
             #[test]
-            fn must_not_recourse_to_root_branching1() {
+            fn must_not_recourse_to_root_branching_1a() {
                 let proof = String::from("hilum");
                 let subentry = Entry(proof.as_str());
                 let entry = Entry("claybank");
@@ -1292,7 +1297,7 @@ mod tests_of_units {
             }
 
             #[test]
-            fn must_not_recourse_to_root_branching2() {
+            fn must_not_recourse_to_root_branching_1b() {
                 let proof = String::from("hilum");
                 let subentry = Entry(proof.as_str());
                 let entry = Entry("claybank");
@@ -1308,6 +1313,40 @@ mod tests_of_units {
 
                 assert_eq!(132, b_code);
                 assert_eq!(Ok(proof), find);
+            }
+
+            #[test]
+            fn must_not_recourse_to_root_branching_2a() {
+                let itself = &Entry("lyrics");
+                let other = &Entry("disarrangement");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(itself);
+                _ = poetrie.ins(other);
+
+                let mut b_code = 0;
+                let find = poetrie.find(itself, &mut b_code);
+
+                assert_eq!(Err(FindErr::OnlyKeyMatches), find);
+                assert_eq!(18, b_code);
+            }
+
+            #[test]
+            fn must_not_recourse_to_root_branching_2b() {
+                let some = &Entry("lyrics");
+                let key = &Entry("disarrangement");
+                let sub_entry = &Entry("arrangement");
+
+                let mut poetrie = Poetrie::new();
+                _ = poetrie.ins(some);
+                _ = poetrie.ins(sub_entry);
+
+                let mut b_code = 0;
+                let find = poetrie.find(key, &mut b_code);
+
+                let proof = sub_entry.0.to_string();
+                assert_eq!(Ok(proof), find);
+                assert_eq!(40, b_code);
             }
 
             #[test]
@@ -1589,7 +1628,7 @@ mod tests_of_units {
                 assert(Ok(proof), 642, key, &poetrie);
 
                 let key = Entry("epicalyx");
-                assert(Err(FindErr::NoJointSuffix), 0, key, &poetrie);
+                assert(Err(FindErr::NoJointSuffix), 4, key, &poetrie);
 
                 let key = RevEntry::new("documental");
                 let proof = RevEntry::new("documentalist").0;
